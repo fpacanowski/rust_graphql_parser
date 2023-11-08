@@ -10,4 +10,5 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
+graphql-parser = "0.4.0"
 magnus = { version = "0.4" }

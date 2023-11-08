@@ -18,3 +18,12 @@ Rake::ExtensionTask.new("rust_graphql_parser") do |ext|
 end
 
 task default: %i[compile spec rubocop]
+
+task :bench do
+  require 'benchmark/ips'
+  require 'rust_graphql_parser'
+  s = File.read('negotiate.gql')
+  Benchmark.ips do |x|
+    x.report('parse') { RustGraphqlParser.parse(s) }
+  end
+end
