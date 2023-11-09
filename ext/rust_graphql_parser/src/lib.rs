@@ -1,6 +1,8 @@
 extern crate graphql_parser;
 
-use graphql_parser::query::{parse_query, ParseError, Document};
+mod translation;
+
+use graphql_parser::query::parse_query;
 
 use magnus::{define_module, exception, function, prelude::*, Error, RHash};
 
@@ -8,12 +10,12 @@ fn hello(subject: String) -> String {
     format!("Hello from Rust, {}!", subject)
 }
 
+type TextType = String;
+
 fn parse(query: String) -> Result<RHash, Error> {
-    let hash = RHash::new();
-    hash.aset("foo", 7).unwrap();
-    let res = graphql_parser::query::parse_query::<&str>(&query);
-    match res {
-        Ok(r) => return Ok(hash),
+    // let res = parse_query::<TextType>(&query);
+    match parse_query::<TextType>(&query) {
+        Ok(r) => return Ok(translation::translate_document(&r)),
         Err(e) => return Err(Error::new(exception::runtime_error(), e.to_string())),
     }
 }
