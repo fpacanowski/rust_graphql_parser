@@ -40,7 +40,7 @@ fn translate_query(query: &Query<'_, TextType>) -> RHash {
     let hash = RHash::new();
     hash.aset(Symbol::new("node_type"), Symbol::new("query"))
         .unwrap();
-    println!("dupa: {:#?}", query);
+    // println!("dupa: {:#?}", query);
     if let Some(query_name) = query.name.clone() {
         hash.aset(Symbol::new("name"), query_name.clone()).unwrap();
     }

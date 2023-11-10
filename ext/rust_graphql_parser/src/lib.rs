@@ -13,8 +13,9 @@ fn hello(subject: String) -> String {
 type TextType = String;
 
 fn parse(query: String) -> Result<RHash, Error> {
-    // let res = parse_query::<TextType>(&query);
-    match parse_query::<TextType>(&query) {
+    let res = std::hint::black_box(parse_query::<TextType>(&query));
+    std::hint::black_box(format!("#{:?}",res));
+    match res {
         Ok(r) => return Ok(translation::translate_document(&r)),
         Err(e) => return Err(Error::new(exception::runtime_error(), e.to_string())),
     }
