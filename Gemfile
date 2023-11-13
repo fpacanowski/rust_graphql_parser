@@ -15,3 +15,6 @@ gem "rspec", "~> 3.0"
 gem "rubocop", "~> 1.21"
 
 gem "benchmark-ips"
+
+gem "graphql"
+gem "graphql-c_parser"
