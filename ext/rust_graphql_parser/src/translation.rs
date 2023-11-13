@@ -199,10 +199,18 @@ fn translate_type(type_def: &Type<'_, TextType>) -> RHash {
         Type::NamedType(type_name) => {
             let hash = build_ruby_node("named_type");
             hash.aset(Symbol::new("name"), type_name.clone()).unwrap();
-            return hash;
+            hash
         }
-        Type::ListType(_) => unimplemented(),
-        Type::NonNullType(_) => unimplemented(),
+        Type::ListType(inner_type) => {
+            let hash = build_ruby_node("list_type");
+            hash.aset(Symbol::new("type"), translate_type(inner_type)).unwrap();
+            hash
+        },
+        Type::NonNullType(inner_type) => {
+            let hash = build_ruby_node("non_null_type");
+            hash.aset(Symbol::new("type"), translate_type(inner_type)).unwrap();
+            hash
+        },
     };
 }
 

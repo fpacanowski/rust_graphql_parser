@@ -56,8 +56,14 @@ module RustGraphqlParser
         line: node.fetch(:position).fetch(:line),
         col: node.fetch(:position).fetch(:column),
         name: node.fetch(:name),
-        type: TypeName.new(name: node.fetch(:var_type).fetch(:name)),
+        type: translate(node.fetch(:var_type)),
       )
+    when :named_type
+      TypeName.new(name: node.fetch(:name))
+    when :list_type
+      ListType.new(of_type: translate(node.fetch(:type)))
+    when :non_null_type
+      NonNullType.new(of_type: translate(node.fetch(:type)))
     when :argument
       Argument.new(
         name: node.fetch(:name),

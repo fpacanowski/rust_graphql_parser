@@ -30,6 +30,7 @@ describe 'Parsing' do
     query_nameless_vars
     query_arguments
     field_arguments
+    types
   ].each do |filename|
     specify filename do
       source = File.read("spec/data/#{filename}.graphql")
