@@ -5,19 +5,19 @@ RSpec.describe RustGraphqlParser do
     expect(RustGraphqlParser::VERSION).not_to be nil
   end
 
-  it "does something useful" do
-    pp RustGraphqlParser.parse("query Foo{abc xyz(value: {foo: 7})}")
-    expect(true).to eq(true)
-    # expect(RustGraphqlParser.parse("query Foo{abc}")).to match({
-    #   node_type: :document,
-    #   definitions: [{name: "Foo", position: {column: 1, line: 1}}],
-    # })
-  end
-
   specify do
+    # pp RustGraphqlParser.parse("fragment MyFragment on Foo { value }")
     expect(RustGraphqlParser.parse("fragment MyFragment on Foo { value }")).to eq(
-      node_type: :document,
-      definitions: [{unimplemented: true}],
-    )
+      {:node_type=>:document,
+      :definitions=>
+       [{:node_type=>:fragment_definition,
+         :name=>"MyFragment",
+         :position=>{:line=>1, :column=>1},
+         :selection_set=>
+          {:node_type=>:selection_set,
+           :span=>[{:line=>1, :column=>28}, {:line=>1, :column=>36}],
+           :items=>[{:node_type=>:field, :name=>"value", :position=>{:line=>1, :column=>30}, :selection_set=>{:node_type=>:selection_set, :span=>[{:line=>1, :column=>30}, {:line=>1, :column=>30}], :items=>[]}}]},
+         :type_condition=>{:on=>"Foo"}}]}
+         )
   end
 end

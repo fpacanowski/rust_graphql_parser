@@ -1,7 +1,8 @@
 use graphql_parser::query::{
-    Definition, Document, Field, OperationDefinition, Query, Selection, SelectionSet,
+    Definition, Document, Field, FragmentDefinition, FragmentSpread, InlineFragment,
+    OperationDefinition, Query, Selection, SelectionSet, TypeCondition, VariableDefinition,
 };
-
+use graphql_parser::schema::Type;
 use graphql_parser::Pos;
 
 use magnus::{RArray, RHash, Symbol};
@@ -9,6 +10,7 @@ use magnus::{RArray, RHash, Symbol};
 type TextType = String;
 
 pub fn translate_document(doc: &Document<'_, TextType>) -> RHash {
+    // println!("{:#?}", doc);
     let hash = build_ruby_node("document");
     let definitions = RArray::new();
     for x in doc.definitions.iter() {
@@ -21,7 +23,7 @@ pub fn translate_document(doc: &Document<'_, TextType>) -> RHash {
 fn translate_definition(definition: &Definition<'_, TextType>) -> RHash {
     return match definition {
         Definition::Operation(operation) => translate_operation_definition(operation),
-        Definition::Fragment(_fragment) => unimplemented(),
+        Definition::Fragment(fragment) => translate_fragment_definition(fragment),
     };
 }
 
@@ -30,17 +32,41 @@ fn translate_operation_definition(
 ) -> RHash {
     return match operation_definition {
         OperationDefinition::Query(query) => translate_query(query),
-        OperationDefinition::SelectionSet(_selection_set) => unimplemented(),
+        OperationDefinition::SelectionSet(selection_set) => translate_selection_set(selection_set),
         OperationDefinition::Mutation(_mutation) => unimplemented(),
         OperationDefinition::Subscription(_subscription) => unimplemented(),
     };
+}
+
+fn translate_fragment_definition(fragment_definition: &FragmentDefinition<'_, TextType>) -> RHash {
+    let hash = build_ruby_node("fragment_definition");
+    hash.aset(Symbol::new("name"), fragment_definition.name.clone())
+        .unwrap();
+    hash.aset(
+        Symbol::new("position"),
+        translate_position(&fragment_definition.position),
+    )
+    .unwrap();
+    hash.aset(
+        Symbol::new("selection_set"),
+        translate_selection_set(&fragment_definition.selection_set),
+    )
+    .unwrap();
+
+    let type_condition = RHash::new();
+    let TypeCondition::On(on_type) = &fragment_definition.type_condition;
+    type_condition
+        .aset(Symbol::new("on"), on_type.clone())
+        .unwrap();
+    hash.aset(Symbol::new("type_condition"), type_condition)
+        .unwrap();
+    return hash;
 }
 
 fn translate_query(query: &Query<'_, TextType>) -> RHash {
     let hash = RHash::new();
     hash.aset(Symbol::new("node_type"), Symbol::new("query"))
         .unwrap();
-    // println!("dupa: {:#?}", query);
     if let Some(query_name) = query.name.clone() {
         hash.aset(Symbol::new("name"), query_name.clone()).unwrap();
     }
@@ -49,6 +75,33 @@ fn translate_query(query: &Query<'_, TextType>) -> RHash {
     hash.aset(
         Symbol::new("selection_set"),
         translate_selection_set(&query.selection_set),
+    )
+    .unwrap();
+
+    let variable_definitions = RArray::new();
+    for x in query.variable_definitions.iter() {
+        variable_definitions
+            .push(translate_variable_definition(x))
+            .unwrap();
+    }
+    hash.aset(Symbol::new("variable_definitions"), variable_definitions)
+        .unwrap();
+
+    return hash;
+}
+
+fn translate_variable_definition(variable_definition: &VariableDefinition<'_, String>) -> RHash {
+    let hash = build_ruby_node("variable_definition");
+    hash.aset(Symbol::new("name"), variable_definition.name.clone())
+        .unwrap();
+    hash.aset(
+        Symbol::new("position"),
+        translate_position(&variable_definition.position),
+    )
+    .unwrap();
+    hash.aset(
+        Symbol::new("var_type"),
+        translate_type(&variable_definition.var_type),
     )
     .unwrap();
     return hash;
@@ -78,8 +131,8 @@ fn translate_selection_set(selection_set: &SelectionSet<'_, TextType>) -> RHash 
 fn translate_selection(selection: &Selection<'_, TextType>) -> RHash {
     return match selection {
         Selection::Field(field) => translate_field(field),
-        Selection::FragmentSpread(_fragment_spread) => unimplemented(),
-        Selection::InlineFragment(_inline_fragment) => unimplemented(),
+        Selection::FragmentSpread(fragment_spread) => translate_fragment_spread(fragment_spread),
+        Selection::InlineFragment(inline_fragment) => translate_inline_fragment(inline_fragment),
     };
 }
 
@@ -94,6 +147,56 @@ fn translate_field(field: &Field<'_, TextType>) -> RHash {
     )
     .unwrap();
     return hash;
+}
+
+fn translate_fragment_spread(fragment_spread: &FragmentSpread<'_, TextType>) -> RHash {
+    let hash = build_ruby_node("fragment_spread");
+    hash.aset(
+        Symbol::new("fragment_name"),
+        fragment_spread.fragment_name.clone(),
+    )
+    .unwrap();
+    hash.aset(
+        Symbol::new("position"),
+        translate_position(&fragment_spread.position),
+    )
+    .unwrap();
+    return hash;
+}
+
+fn translate_inline_fragment(inline_fragment: &InlineFragment<'_, TextType>) -> RHash {
+    let hash = build_ruby_node("inline_fragment");
+    hash.aset(
+        Symbol::new("position"),
+        translate_position(&inline_fragment.position),
+    )
+    .unwrap();
+    hash.aset(
+        Symbol::new("selection_set"),
+        translate_selection_set(&inline_fragment.selection_set),
+    )
+    .unwrap();
+    if let Some(TypeCondition::On(on_type)) = &inline_fragment.type_condition {
+        let type_condition = RHash::new();
+        type_condition
+            .aset(Symbol::new("on"), on_type.clone())
+            .unwrap();
+        hash.aset(Symbol::new("type_condition"), type_condition)
+            .unwrap();
+    }
+    return hash;
+}
+
+fn translate_type(type_def: &Type<'_, TextType>) -> RHash {
+    return match type_def {
+        Type::NamedType(type_name) => {
+            let hash = build_ruby_node("named_type");
+            hash.aset(Symbol::new("name"), type_name.clone()).unwrap();
+            return hash;
+        }
+        Type::ListType(_) => unimplemented(),
+        Type::NonNullType(_) => unimplemented(),
+    };
 }
 
 fn translate_position(position: &Pos) -> RHash {
@@ -111,7 +214,5 @@ fn build_ruby_node(node_type: &str) -> RHash {
 }
 
 fn unimplemented() -> RHash {
-    let hash = RHash::new();
-    hash.aset(Symbol::new("unimplemented"), true).unwrap();
-    return hash;
+    return build_ruby_node("unimplemented");
 }
