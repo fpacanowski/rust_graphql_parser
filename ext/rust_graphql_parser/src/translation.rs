@@ -1,6 +1,6 @@
 use graphql_parser::query::{
     Definition, Document, Field, FragmentDefinition, FragmentSpread, InlineFragment,
-    OperationDefinition, Query, Selection, SelectionSet, TypeCondition, VariableDefinition,
+    OperationDefinition, Query, Selection, SelectionSet, TypeCondition, VariableDefinition, Mutation,
 };
 use graphql_parser::schema::{Type, Value};
 use graphql_parser::Pos;
@@ -33,7 +33,7 @@ fn translate_operation_definition(
     return match operation_definition {
         OperationDefinition::Query(query) => translate_query(query),
         OperationDefinition::SelectionSet(selection_set) => translate_selection_set(selection_set),
-        OperationDefinition::Mutation(_mutation) => unimplemented(),
+        OperationDefinition::Mutation(mutation) => translate_mutation(mutation),
         OperationDefinition::Subscription(_subscription) => unimplemented(),
     };
 }
@@ -66,6 +66,34 @@ fn translate_fragment_definition(fragment_definition: &FragmentDefinition<'_, Te
 fn translate_query(query: &Query<'_, TextType>) -> RHash {
     let hash = RHash::new();
     hash.aset(Symbol::new("node_type"), Symbol::new("query"))
+        .unwrap();
+    if let Some(query_name) = query.name.clone() {
+        hash.aset(Symbol::new("name"), query_name.clone()).unwrap();
+    }
+    hash.aset(Symbol::new("position"), translate_position(&query.position))
+        .unwrap();
+    hash.aset(
+        Symbol::new("selection_set"),
+        translate_selection_set(&query.selection_set),
+    )
+    .unwrap();
+
+    let variable_definitions = RArray::new();
+    for x in query.variable_definitions.iter() {
+        variable_definitions
+            .push(translate_variable_definition(x))
+            .unwrap();
+    }
+    hash.aset(Symbol::new("variable_definitions"), variable_definitions)
+        .unwrap();
+
+    return hash;
+}
+
+// TODO: unify with translate_query.
+fn translate_mutation(query: &Mutation<'_, TextType>) -> RHash {
+    let hash = RHash::new();
+    hash.aset(Symbol::new("node_type"), Symbol::new("mutation"))
         .unwrap();
     if let Some(query_name) = query.name.clone() {
         hash.aset(Symbol::new("name"), query_name.clone()).unwrap();

@@ -9,10 +9,15 @@ module RustGraphqlParser
     case node.fetch(:node_type)
     when :document
       Document.new(definitions: node.fetch(:definitions).map{|x| translate(x)})
-    when :query
+    when :query, :mutation
       selections = node.fetch(:selection_set).fetch(:items).map{|x| translate(x)}
       variables = node.fetch(:variable_definitions).map{|x| translate(x)}
-      OperationDefinition.new(operation_type: "query", name: node[:name], selections:, variables:)
+      OperationDefinition.new(
+        operation_type: node.fetch(:node_type).to_s,
+        name: node[:name],
+        selections:,
+        variables:
+      )
     when :selection_set
       selections = node.fetch(:items).map{|x| translate(x)}
       OperationDefinition.new(operation_type: "query", name: node[:name], selections:, variables: [])
