@@ -2,7 +2,7 @@ use graphql_parser::query::{
     Definition, Document, Field, FragmentDefinition, FragmentSpread, InlineFragment,
     OperationDefinition, Query, Selection, SelectionSet, TypeCondition, VariableDefinition,
 };
-use graphql_parser::schema::Type;
+use graphql_parser::schema::{Type, Value};
 use graphql_parser::Pos;
 
 use magnus::{RArray, RHash, Symbol};
@@ -146,6 +146,13 @@ fn translate_field(field: &Field<'_, TextType>) -> RHash {
         translate_selection_set(&field.selection_set),
     )
     .unwrap();
+
+    let arguments = RArray::new();
+    for (name, val) in field.arguments.iter() {
+        arguments.push(translate_argument(name, val)).unwrap();
+    }
+    hash.aset(Symbol::new("arguments"), arguments).unwrap();
+
     return hash;
 }
 
@@ -197,6 +204,67 @@ fn translate_type(type_def: &Type<'_, TextType>) -> RHash {
         Type::ListType(_) => unimplemented(),
         Type::NonNullType(_) => unimplemented(),
     };
+}
+
+fn translate_argument(name: &String, val: &Value<'_, TextType>) -> RHash {
+    let hash = build_ruby_node("argument");
+    hash.aset(Symbol::new("name"), name.clone()).unwrap();
+    hash.aset(Symbol::new("value"), translate_value(val)).unwrap();
+    return hash;
+}
+
+fn translate_value(value: &Value<'_, TextType>) -> RHash {
+    return match value {
+        Value::Variable(variable) => {
+            let res = build_ruby_node("variable");
+            res.aset(Symbol::new("name"), variable.clone()).unwrap();
+            return res;
+        },
+        Value::Int(number) => {
+            let res = build_ruby_node("int");
+            res.aset(Symbol::new("value"), number.as_i64()).unwrap();
+            return res;
+        },
+        Value::Float(number) => {
+            let res = build_ruby_node("float");
+            res.aset(Symbol::new("value"), *number).unwrap();
+            return res;
+        },
+        Value::String(str) => {
+            let res = build_ruby_node("string");
+            res.aset(Symbol::new("value"), str.clone()).unwrap();
+            return res;
+        },
+        Value::Boolean(bool) => {
+            let res = build_ruby_node("boolean");
+            res.aset(Symbol::new("value"), *bool).unwrap();
+            return res;
+        },
+        Value::Null => build_ruby_node("null"),
+        Value::Enum(enum_name) => {
+            let res = build_ruby_node("enum");
+            res.aset(Symbol::new("value"), enum_name.clone()).unwrap();
+            return res;
+        },
+        Value::List(vals) => {
+            let res = build_ruby_node("list");
+            let value = RArray::new();
+            for v in vals.iter() {
+                value.push(translate_value(v)).unwrap();
+            }
+            res.aset(Symbol::new("value"), value).unwrap();
+            return res;
+        },
+        Value::Object(obj) => {
+            let res = build_ruby_node("object");
+            let value = RArray::new();
+            for (name, val) in obj.iter() {
+                value.push(translate_argument(name, val)).unwrap();
+            }
+            res.aset(Symbol::new("value"), value).unwrap();
+            return res;
+        },
+    }
 }
 
 fn translate_position(position: &Pos) -> RHash {
