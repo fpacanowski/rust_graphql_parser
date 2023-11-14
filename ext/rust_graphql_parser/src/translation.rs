@@ -194,6 +194,10 @@ fn translate_field(field: &Field<'_, TextType>) -> RHash {
     )
     .unwrap();
 
+    if let Some(alias) = field.alias.clone() {
+        hash.aset(Symbol::new("alias"), alias).unwrap();
+    }
+
     let arguments = RArray::new();
     for (name, val) in field.arguments.iter() {
         arguments.push(translate_argument(name, val)).unwrap();

@@ -43,6 +43,7 @@ describe 'Parsing' do
     query_var_default_object
     query_var_defaults
     query_var_default_string
+    query_aliases
   ].each do |filename|
     specify filename do
       source = File.read("spec/data/#{filename}.graphql")
