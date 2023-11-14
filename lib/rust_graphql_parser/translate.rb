@@ -61,11 +61,12 @@ module RustGraphqlParser
     when :inline_fragment
       selections = node.fetch(:selection_set).fetch(:items).map{|x| translate(x)}
       directives = node.fetch(:directives).map{|x| translate(x)}
-      type_name = node.fetch(:type_condition).fetch(:on)
+      type_name = node.dig(:type_condition, :on)
+      type = type_name ? TypeName.new(name: type_name) : nil
       InlineFragment.new(
         line: node.fetch(:position).fetch(:line),
         col: node.fetch(:position).fetch(:column),
-        type: TypeName.new(name: type_name),
+        type:,
         selections:,
         directives:,
       )
