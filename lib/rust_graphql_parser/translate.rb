@@ -74,6 +74,7 @@ module RustGraphqlParser
         col: node.fetch(:position).fetch(:column),
         name: node.fetch(:name),
         type: translate(node.fetch(:var_type)),
+        default_value: node[:default_value]&.then{|x| translate(x)}
       )
     when :named_type
       TypeName.new(name: node.fetch(:name))

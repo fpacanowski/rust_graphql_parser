@@ -38,6 +38,11 @@ describe 'Parsing' do
     inline_fragment_dir
     mutation_directive
     query_directive
+    query_var_default_float
+    query_var_default_list
+    query_var_default_object
+    query_var_defaults
+    query_var_default_string
   ].each do |filename|
     specify filename do
       source = File.read("spec/data/#{filename}.graphql")

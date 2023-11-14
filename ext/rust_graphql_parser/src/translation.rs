@@ -144,6 +144,13 @@ fn translate_variable_definition(variable_definition: &VariableDefinition<'_, St
         translate_type(&variable_definition.var_type),
     )
     .unwrap();
+    if let Some(default_value) = variable_definition.default_value.clone() {
+        hash.aset(
+            Symbol::new("default_value"),
+            translate_value(&default_value),
+        )
+        .unwrap();
+    }
     return hash;
 }
 
