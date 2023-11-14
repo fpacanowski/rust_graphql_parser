@@ -12,11 +12,13 @@ module RustGraphqlParser
     when :query, :mutation
       selections = node.fetch(:selection_set).fetch(:items).map{|x| translate(x)}
       variables = node.fetch(:variable_definitions).map{|x| translate(x)}
+      directives = node.fetch(:directives).map{|x| translate(x)}
       OperationDefinition.new(
         operation_type: node.fetch(:node_type).to_s,
         name: node[:name],
         selections:,
-        variables:
+        variables:,
+        directives:,
       )
     when :selection_set
       selections = node.fetch(:items).map{|x| translate(x)}
@@ -29,16 +31,24 @@ module RustGraphqlParser
         line: node.fetch(:position).fetch(:line),
         col: node.fetch(:position).fetch(:column),
         type: TypeName.new(name: type_name),
-        selections: selections,
-      )
+        selections:,
+        )
     when :field
       selections = node.fetch(:selection_set).fetch(:items).map{|x| translate(x)}
       arguments = node.fetch(:arguments).map{|x| translate(x)}
+      directives = node.fetch(:directives).map{|x| translate(x)}
       Field.new(
         name: node.fetch(:name),
         line: node.fetch(:position).fetch(:line),
         col: node.fetch(:position).fetch(:column),
         selections: selections,
+        arguments:,
+        directives:,
+      )
+    when :directive
+      arguments = node.fetch(:arguments).map{|x| translate(x)}
+      Directive.new(
+        name: node.fetch(:name),
         arguments:,
       )
     when :fragment_spread
@@ -49,12 +59,14 @@ module RustGraphqlParser
       )
     when :inline_fragment
       selections = node.fetch(:selection_set).fetch(:items).map{|x| translate(x)}
+      directives = node.fetch(:directives).map{|x| translate(x)}
       type_name = node.fetch(:type_condition).fetch(:on)
       InlineFragment.new(
         line: node.fetch(:position).fetch(:line),
         col: node.fetch(:position).fetch(:column),
         type: TypeName.new(name: type_name),
-        selections: selections,
+        selections:,
+        directives:,
       )
     when :variable_definition
       VariableDefinition.new(

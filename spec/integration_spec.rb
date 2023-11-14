@@ -33,6 +33,11 @@ describe 'Parsing' do
     types
     minimal_mutation
     mutation_nameless_vars
+    directive_args
+    directive_args_multiline
+    inline_fragment_dir
+    mutation_directive
+    query_directive
   ].each do |filename|
     specify filename do
       source = File.read("spec/data/#{filename}.graphql")

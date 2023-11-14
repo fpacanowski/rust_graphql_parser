@@ -16,7 +16,7 @@ RSpec.describe RustGraphqlParser do
          :selection_set=>
           {:node_type=>:selection_set,
            :span=>[{:line=>1, :column=>28}, {:line=>1, :column=>36}],
-           :items=>[{:node_type=>:field, :name=>"value", :position=>{:line=>1, :column=>30}, :selection_set=>{:node_type=>:selection_set, :span=>[{:line=>1, :column=>30}, {:line=>1, :column=>30}], :items=>[]}, :arguments=>[]}]},
+           :items=>[{:node_type=>:field, :name=>"value", :position=>{:line=>1, :column=>30}, :selection_set=>{:node_type=>:selection_set, :span=>[{:line=>1, :column=>30}, {:line=>1, :column=>30}], :items=>[]}, :arguments=>[], :directives=>[]}]},
          :type_condition=>{:on=>"Foo"}}]}
     )
   end

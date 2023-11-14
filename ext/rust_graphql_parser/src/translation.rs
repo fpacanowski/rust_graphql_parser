@@ -2,7 +2,7 @@ use graphql_parser::query::{
     Definition, Document, Field, FragmentDefinition, FragmentSpread, InlineFragment,
     OperationDefinition, Query, Selection, SelectionSet, TypeCondition, VariableDefinition, Mutation,
 };
-use graphql_parser::schema::{Type, Value};
+use graphql_parser::schema::{Type, Value, Directive};
 use graphql_parser::Pos;
 
 use magnus::{RArray, RHash, Symbol};
@@ -87,6 +87,12 @@ fn translate_query(query: &Query<'_, TextType>) -> RHash {
     hash.aset(Symbol::new("variable_definitions"), variable_definitions)
         .unwrap();
 
+    let directives = RArray::new();
+    for directive in query.directives.iter() {
+        directives.push(translate_directive(directive)).unwrap();
+    }
+    hash.aset(Symbol::new("directives"), directives).unwrap();
+
     return hash;
 }
 
@@ -114,6 +120,12 @@ fn translate_mutation(query: &Mutation<'_, TextType>) -> RHash {
     }
     hash.aset(Symbol::new("variable_definitions"), variable_definitions)
         .unwrap();
+
+    let directives = RArray::new();
+    for directive in query.directives.iter() {
+        directives.push(translate_directive(directive)).unwrap();
+    }
+    hash.aset(Symbol::new("directives"), directives).unwrap();
 
     return hash;
 }
@@ -181,6 +193,27 @@ fn translate_field(field: &Field<'_, TextType>) -> RHash {
     }
     hash.aset(Symbol::new("arguments"), arguments).unwrap();
 
+    let directives = RArray::new();
+    for directive in field.directives.iter() {
+        directives.push(translate_directive(directive)).unwrap();
+    }
+    hash.aset(Symbol::new("directives"), directives).unwrap();
+
+    return hash;
+}
+
+fn translate_directive(directive: &Directive<'_, TextType>) -> RHash {
+    let hash = build_ruby_node("directive");
+    hash.aset(Symbol::new("name"), directive.name.clone()).unwrap();
+    hash.aset(Symbol::new("position"), translate_position(&directive.position))
+        .unwrap();
+
+    let arguments = RArray::new();
+    for (name, val) in directive.arguments.iter() {
+        arguments.push(translate_argument(name, val)).unwrap();
+    }
+    hash.aset(Symbol::new("arguments"), arguments).unwrap();
+
     return hash;
 }
 
@@ -219,6 +252,11 @@ fn translate_inline_fragment(inline_fragment: &InlineFragment<'_, TextType>) -> 
         hash.aset(Symbol::new("type_condition"), type_condition)
             .unwrap();
     }
+    let directives = RArray::new();
+    for directive in inline_fragment.directives.iter() {
+        directives.push(translate_directive(directive)).unwrap();
+    }
+    hash.aset(Symbol::new("directives"), directives).unwrap();
     return hash;
 }
 
