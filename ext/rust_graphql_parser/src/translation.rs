@@ -1,6 +1,6 @@
 use graphql_parser::query::{
     Definition, Document, Field, FragmentDefinition, FragmentSpread, InlineFragment,
-    OperationDefinition, Query, Selection, SelectionSet, TypeCondition, VariableDefinition, Mutation,
+    OperationDefinition, Query, Selection, SelectionSet, TypeCondition, VariableDefinition, Mutation, Subscription,
 };
 use graphql_parser::schema::{Type, Value, Directive};
 use graphql_parser::Pos;
@@ -34,7 +34,7 @@ fn translate_operation_definition(
         OperationDefinition::Query(query) => translate_query(query),
         OperationDefinition::SelectionSet(selection_set) => translate_selection_set(selection_set),
         OperationDefinition::Mutation(mutation) => translate_mutation(mutation),
-        OperationDefinition::Subscription(_subscription) => unimplemented(),
+        OperationDefinition::Subscription(subscription) => translate_subscription(subscription),
     };
 }
 
@@ -100,6 +100,40 @@ fn translate_query(query: &Query<'_, TextType>) -> RHash {
 fn translate_mutation(query: &Mutation<'_, TextType>) -> RHash {
     let hash = RHash::new();
     hash.aset(Symbol::new("node_type"), Symbol::new("mutation"))
+        .unwrap();
+    if let Some(query_name) = query.name.clone() {
+        hash.aset(Symbol::new("name"), query_name.clone()).unwrap();
+    }
+    hash.aset(Symbol::new("position"), translate_position(&query.position))
+        .unwrap();
+    hash.aset(
+        Symbol::new("selection_set"),
+        translate_selection_set(&query.selection_set),
+    )
+    .unwrap();
+
+    let variable_definitions = RArray::new();
+    for x in query.variable_definitions.iter() {
+        variable_definitions
+            .push(translate_variable_definition(x))
+            .unwrap();
+    }
+    hash.aset(Symbol::new("variable_definitions"), variable_definitions)
+        .unwrap();
+
+    let directives = RArray::new();
+    for directive in query.directives.iter() {
+        directives.push(translate_directive(directive)).unwrap();
+    }
+    hash.aset(Symbol::new("directives"), directives).unwrap();
+
+    return hash;
+}
+
+// TODO: unify with translate_query.
+fn translate_subscription(query: &Subscription<'_, TextType>) -> RHash {
+    let hash = RHash::new();
+    hash.aset(Symbol::new("node_type"), Symbol::new("subscription"))
         .unwrap();
     if let Some(query_name) = query.name.clone() {
         hash.aset(Symbol::new("name"), query_name.clone()).unwrap();
@@ -366,6 +400,6 @@ fn build_ruby_node(node_type: &str) -> RHash {
     return hash;
 }
 
-fn unimplemented() -> RHash {
+fn _unimplemented() -> RHash {
     return build_ruby_node("unimplemented");
 }
