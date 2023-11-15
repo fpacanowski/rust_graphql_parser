@@ -31,6 +31,6 @@ fn init() -> Result<(), Error> {
     let module = define_module("RustGraphqlParser")?;
     module.define_singleton_method("hello", function!(hello, 1))?;
     module.define_singleton_method("parse", function!(parse, 1))?;
-    module.define_singleton_method("parse_no_copy", function!(parse_raw, 1))?;
+    module.define_singleton_method("parse_raw", function!(parse_raw, 1))?;
     Ok(())
 }
