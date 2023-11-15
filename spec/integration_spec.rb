@@ -3,49 +3,43 @@ require 'rust_graphql_parser'
 require 'benchmark/ips'
 
 describe 'Parsing' do
-  let(:query) { 'query Foo {abc}' }
-  xspecify do
-    pp GraphQL.parse(query)
-    pp RustGraphqlParser.parse(query)
-    pp translate(RustGraphqlParser.parse(query))
-    ruby_ast = GraphQL.parse(query)
-    rust_ast = translate(RustGraphqlParser.parse(query))
-    puts "-"*80
-    pp ruby_ast
-    pp rust_ast
-    expect(rust_ast).to eq(ruby_ast)
-    expect(true).to eq(true)
-  end
-  
-  # query_nameless_vars
   %w[
-    minimal
-    minimal_query
-    named_query
-    nested_selection
-    fragment
-    inline_fragment
-    fragment_spread
-    query_vars
-    query_nameless_vars
-    query_arguments
-    field_arguments
-    types
-    minimal_mutation
-    mutation_nameless_vars
+    big_query
     directive_args
     directive_args_multiline
+    field_arguments
+    fragment
+    fragment_spread
     inline_fragment_dir
+    inline_fragment
+    minimal
+    minimal_mutation
+    minimal_query
     mutation_directive
+    mutation_nameless_vars
+    named_query
+    nested_field_arguments
+    nested_selection
+    query_aliases
+    query_arguments
+    query_arguments_multiline
+    query_array_argument_multiline
     query_directive
+    query_list_argument
+    query_nameless_vars
+    query_nameless_vars_multiple_fields_canonical
+    query_nameless_vars_multiple_fields
+    query_object_argument
+    query_object_argument_multiline
     query_var_default_float
     query_var_default_list
     query_var_default_object
     query_var_defaults
     query_var_default_string
-    query_aliases
+    query_vars
+    string_literal
     subscription_directive
-    big_query
+    types
   ].each do |filename|
     specify filename do
       source = File.read("spec/data/#{filename}.graphql")
@@ -57,18 +51,6 @@ describe 'Parsing' do
       rust_ast = RustGraphqlParser.translate(rust_ast)
       # pp rust_ast
       expect(rust_ast).to eq(ruby_ast)
-    end
-  end
-
-  let(:big_query) {File.read('negotiate.gql')}
-
-  xspecify 'bench' do
-    Benchmark.ips do |x|
-      pp RustGraphqlParser.parse(query)
-      x.report("ruby") {GraphQL.parse(big_query)}
-      # x.report("rust") {RustGraphqlParser.parse(big_query)}
-      x.report("rust") {translate(RustGraphqlParser.parse(big_query))}
-      x.compare!
     end
   end
 end
