@@ -1,15 +1,14 @@
 use graphql_parser::query::{
-    Definition, Document, Field, FragmentDefinition, FragmentSpread, InlineFragment,
-    OperationDefinition, Query, Selection, SelectionSet, TypeCondition, VariableDefinition, Mutation, Subscription,
+    Definition, Document, Field, FragmentDefinition, FragmentSpread, InlineFragment, Mutation,
+    OperationDefinition, Query, Selection, SelectionSet, Subscription, TypeCondition,
+    VariableDefinition,
 };
-use graphql_parser::schema::{Type, Value, Directive};
+use graphql_parser::schema::{Directive, Type, Value};
 use graphql_parser::Pos;
 
 use magnus::{RArray, RHash, Symbol};
 
-type TextType = String;
-
-pub fn translate_document(doc: &Document<'_, TextType>) -> RHash {
+pub fn translate_document(doc: &Document<'_, String>) -> RHash {
     // println!("{:#?}", doc);
     let hash = build_ruby_node("document");
     let definitions = RArray::new();
@@ -20,16 +19,14 @@ pub fn translate_document(doc: &Document<'_, TextType>) -> RHash {
     return hash;
 }
 
-fn translate_definition(definition: &Definition<'_, TextType>) -> RHash {
+fn translate_definition(definition: &Definition<'_, String>) -> RHash {
     return match definition {
         Definition::Operation(operation) => translate_operation_definition(operation),
         Definition::Fragment(fragment) => translate_fragment_definition(fragment),
     };
 }
 
-fn translate_operation_definition(
-    operation_definition: &OperationDefinition<'_, TextType>,
-) -> RHash {
+fn translate_operation_definition(operation_definition: &OperationDefinition<'_, String>) -> RHash {
     return match operation_definition {
         OperationDefinition::Query(query) => translate_query(query),
         OperationDefinition::SelectionSet(selection_set) => translate_selection_set(selection_set),
@@ -38,7 +35,7 @@ fn translate_operation_definition(
     };
 }
 
-fn translate_fragment_definition(fragment_definition: &FragmentDefinition<'_, TextType>) -> RHash {
+fn translate_fragment_definition(fragment_definition: &FragmentDefinition<'_, String>) -> RHash {
     let hash = build_ruby_node("fragment_definition");
     hash.aset(Symbol::new("name"), fragment_definition.name.clone())
         .unwrap();
@@ -63,7 +60,7 @@ fn translate_fragment_definition(fragment_definition: &FragmentDefinition<'_, Te
     return hash;
 }
 
-fn translate_query(query: &Query<'_, TextType>) -> RHash {
+fn translate_query(query: &Query<'_, String>) -> RHash {
     let hash = RHash::new();
     hash.aset(Symbol::new("node_type"), Symbol::new("query"))
         .unwrap();
@@ -97,7 +94,7 @@ fn translate_query(query: &Query<'_, TextType>) -> RHash {
 }
 
 // TODO: unify with translate_query.
-fn translate_mutation(query: &Mutation<'_, TextType>) -> RHash {
+fn translate_mutation(query: &Mutation<'_, String>) -> RHash {
     let hash = RHash::new();
     hash.aset(Symbol::new("node_type"), Symbol::new("mutation"))
         .unwrap();
@@ -131,7 +128,7 @@ fn translate_mutation(query: &Mutation<'_, TextType>) -> RHash {
 }
 
 // TODO: unify with translate_query.
-fn translate_subscription(query: &Subscription<'_, TextType>) -> RHash {
+fn translate_subscription(query: &Subscription<'_, String>) -> RHash {
     let hash = RHash::new();
     hash.aset(Symbol::new("node_type"), Symbol::new("subscription"))
         .unwrap();
@@ -188,7 +185,7 @@ fn translate_variable_definition(variable_definition: &VariableDefinition<'_, St
     return hash;
 }
 
-fn translate_selection_set(selection_set: &SelectionSet<'_, TextType>) -> RHash {
+fn translate_selection_set(selection_set: &SelectionSet<'_, String>) -> RHash {
     let hash = RHash::new();
     hash.aset(Symbol::new("node_type"), Symbol::new("selection_set"))
         .unwrap();
@@ -209,7 +206,7 @@ fn translate_selection_set(selection_set: &SelectionSet<'_, TextType>) -> RHash 
     return hash;
 }
 
-fn translate_selection(selection: &Selection<'_, TextType>) -> RHash {
+fn translate_selection(selection: &Selection<'_, String>) -> RHash {
     return match selection {
         Selection::Field(field) => translate_field(field),
         Selection::FragmentSpread(fragment_spread) => translate_fragment_spread(fragment_spread),
@@ -217,7 +214,7 @@ fn translate_selection(selection: &Selection<'_, TextType>) -> RHash {
     };
 }
 
-fn translate_field(field: &Field<'_, TextType>) -> RHash {
+fn translate_field(field: &Field<'_, String>) -> RHash {
     let hash = build_ruby_node("field");
     hash.aset(Symbol::new("name"), field.name.clone()).unwrap();
     hash.aset(Symbol::new("position"), translate_position(&field.position))
@@ -247,11 +244,15 @@ fn translate_field(field: &Field<'_, TextType>) -> RHash {
     return hash;
 }
 
-fn translate_directive(directive: &Directive<'_, TextType>) -> RHash {
+fn translate_directive(directive: &Directive<'_, String>) -> RHash {
     let hash = build_ruby_node("directive");
-    hash.aset(Symbol::new("name"), directive.name.clone()).unwrap();
-    hash.aset(Symbol::new("position"), translate_position(&directive.position))
+    hash.aset(Symbol::new("name"), directive.name.clone())
         .unwrap();
+    hash.aset(
+        Symbol::new("position"),
+        translate_position(&directive.position),
+    )
+    .unwrap();
 
     let arguments = RArray::new();
     for (name, val) in directive.arguments.iter() {
@@ -262,7 +263,7 @@ fn translate_directive(directive: &Directive<'_, TextType>) -> RHash {
     return hash;
 }
 
-fn translate_fragment_spread(fragment_spread: &FragmentSpread<'_, TextType>) -> RHash {
+fn translate_fragment_spread(fragment_spread: &FragmentSpread<'_, String>) -> RHash {
     let hash = build_ruby_node("fragment_spread");
     hash.aset(
         Symbol::new("fragment_name"),
@@ -277,7 +278,7 @@ fn translate_fragment_spread(fragment_spread: &FragmentSpread<'_, TextType>) -> 
     return hash;
 }
 
-fn translate_inline_fragment(inline_fragment: &InlineFragment<'_, TextType>) -> RHash {
+fn translate_inline_fragment(inline_fragment: &InlineFragment<'_, String>) -> RHash {
     let hash = build_ruby_node("inline_fragment");
     hash.aset(
         Symbol::new("position"),
@@ -305,7 +306,7 @@ fn translate_inline_fragment(inline_fragment: &InlineFragment<'_, TextType>) -> 
     return hash;
 }
 
-fn translate_type(type_def: &Type<'_, TextType>) -> RHash {
+fn translate_type(type_def: &Type<'_, String>) -> RHash {
     return match type_def {
         Type::NamedType(type_name) => {
             let hash = build_ruby_node("named_type");
@@ -314,57 +315,60 @@ fn translate_type(type_def: &Type<'_, TextType>) -> RHash {
         }
         Type::ListType(inner_type) => {
             let hash = build_ruby_node("list_type");
-            hash.aset(Symbol::new("type"), translate_type(inner_type)).unwrap();
+            hash.aset(Symbol::new("type"), translate_type(inner_type))
+                .unwrap();
             hash
-        },
+        }
         Type::NonNullType(inner_type) => {
             let hash = build_ruby_node("non_null_type");
-            hash.aset(Symbol::new("type"), translate_type(inner_type)).unwrap();
+            hash.aset(Symbol::new("type"), translate_type(inner_type))
+                .unwrap();
             hash
-        },
+        }
     };
 }
 
-fn translate_argument(name: &String, val: &Value<'_, TextType>) -> RHash {
+fn translate_argument(name: &String, val: &Value<'_, String>) -> RHash {
     let hash = build_ruby_node("argument");
     hash.aset(Symbol::new("name"), name.clone()).unwrap();
-    hash.aset(Symbol::new("value"), translate_value(val)).unwrap();
+    hash.aset(Symbol::new("value"), translate_value(val))
+        .unwrap();
     return hash;
 }
 
-fn translate_value(value: &Value<'_, TextType>) -> RHash {
+fn translate_value(value: &Value<'_, String>) -> RHash {
     return match value {
         Value::Variable(variable) => {
             let res = build_ruby_node("variable");
             res.aset(Symbol::new("name"), variable.clone()).unwrap();
             return res;
-        },
+        }
         Value::Int(number) => {
             let res = build_ruby_node("int");
             res.aset(Symbol::new("value"), number.as_i64()).unwrap();
             return res;
-        },
+        }
         Value::Float(number) => {
             let res = build_ruby_node("float");
             res.aset(Symbol::new("value"), *number).unwrap();
             return res;
-        },
+        }
         Value::String(str) => {
             let res = build_ruby_node("string");
             res.aset(Symbol::new("value"), str.clone()).unwrap();
             return res;
-        },
+        }
         Value::Boolean(bool) => {
             let res = build_ruby_node("boolean");
             res.aset(Symbol::new("value"), *bool).unwrap();
             return res;
-        },
+        }
         Value::Null => build_ruby_node("null"),
         Value::Enum(enum_name) => {
             let res = build_ruby_node("enum");
             res.aset(Symbol::new("value"), enum_name.clone()).unwrap();
             return res;
-        },
+        }
         Value::List(vals) => {
             let res = build_ruby_node("list");
             let value = RArray::new();
@@ -373,7 +377,7 @@ fn translate_value(value: &Value<'_, TextType>) -> RHash {
             }
             res.aset(Symbol::new("value"), value).unwrap();
             return res;
-        },
+        }
         Value::Object(obj) => {
             let res = build_ruby_node("object");
             let value = RArray::new();
@@ -382,8 +386,8 @@ fn translate_value(value: &Value<'_, TextType>) -> RHash {
             }
             res.aset(Symbol::new("value"), value).unwrap();
             return res;
-        },
-    }
+        }
+    };
 }
 
 fn translate_position(position: &Pos) -> RHash {
