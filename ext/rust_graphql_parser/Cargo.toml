@@ -10,5 +10,6 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
+rb-sys = { version = "0.9", features = ["ruby-static", "stable-api-compiled-fallback"] }
 graphql-parser = "0.4.0"
-magnus = { version = "0.4" }
+magnus = { version = "0.6.2" }

@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-require "graphql/c_parser"
 require 'graphql'
 
 module RustGraphqlParser
@@ -39,7 +38,7 @@ module RustGraphqlParser
       directives = node.fetch(:directives).map{|x| translate(x)}
       Field.new(
         name: node.fetch(:name),
-        alias: node.fetch(:alias, nil),
+        field_alias: node.fetch(:alias, nil),
         line: node.fetch(:position).fetch(:line),
         col: node.fetch(:position).fetch(:column),
         selections: selections,

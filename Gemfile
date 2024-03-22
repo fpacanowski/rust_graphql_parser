@@ -18,3 +18,5 @@ gem "benchmark-ips"
 
 gem "graphql"
 gem "graphql-c_parser"
+
+gem 'pry'

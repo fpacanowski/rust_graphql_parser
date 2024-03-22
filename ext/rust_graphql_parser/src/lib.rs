@@ -15,7 +15,7 @@ fn parse(query: String) -> Result<RHash, Error> {
 
 fn parse_raw(query: String) -> String {
     let ast = parse_query::<String>(&query);
-    return format!("#{:?}",ast);
+    return format!("{:?}",ast);
 }
 
 #[magnus::init]
