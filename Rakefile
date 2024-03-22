@@ -17,4 +17,8 @@ Rake::ExtensionTask.new("rust_graphql_parser") do |ext|
   ext.lib_dir = "lib/rust_graphql_parser"
 end
 
+Rake::ExtensionTask.new("another_parser") do |ext|
+  ext.lib_dir = "lib/another_parser"
+end
+
 task default: %i[compile spec rubocop]

@@ -12,6 +12,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "another_parser"
+version = "0.1.0"
+dependencies = [
+ "graphql-parser",
+ "magnus",
+ "rb-sys",
+]
+
+[[package]]
 name = "ascii"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

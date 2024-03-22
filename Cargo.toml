@@ -3,5 +3,5 @@
 # in the ext/ directory.
 
 [workspace]
-members = ["./ext/rust_graphql_parser"]
+members = ["./ext/rust_graphql_parser", "./ext/another_parser"]
 resolver = "2"
