@@ -87,12 +87,12 @@ describe 'Parsing - new' do
     # query_var_default_string
     # string_literal
     # subscription_directive
-    # types
   %w[
     fragment
     minimal_query
     named_query
     query_vars
+    types
   ].each do |filename|
     specify filename do
       source = File.read("spec/data/#{filename}.graphql")

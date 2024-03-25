@@ -149,10 +149,16 @@ unsafe fn translate_type(type_def: &Type<'_, String>) -> VALUE {
             build_instance(*classes::TYPE_NAME, kwargs)
         }
         Type::ListType(inner_type) => {
-            unimplemented()
+            let kwargs = build_hash(&[
+                *symbols::OF_TYPE, translate_type(inner_type)
+            ]);
+            build_instance(*classes::LIST_TYPE, kwargs)
         }
         Type::NonNullType(inner_type) => {
-            unimplemented()
+            let kwargs = build_hash(&[
+                *symbols::OF_TYPE, translate_type(inner_type)
+            ]);
+            build_instance(*classes::NON_NULL_TYPE, kwargs)
         }
     };
 }
@@ -174,6 +180,9 @@ mod symbols {
     });
     pub static VARIABLES: Lazy<VALUE> = Lazy::new(|| unsafe {
         rb_id2sym(rb_intern!("variables"))
+    });
+    pub static OF_TYPE: Lazy<VALUE> = Lazy::new(|| unsafe {
+        rb_id2sym(rb_intern!("of_type"))
     });
 }
 
@@ -197,6 +206,12 @@ mod classes {
     });
     pub static VARIABLE_DEFINITION: Lazy<VALUE> = Lazy::new(|| unsafe {
         resolve(static_cstring!("VariableDefinition"))
+    });
+    pub static LIST_TYPE: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("ListType"))
+    });
+    pub static NON_NULL_TYPE: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("NonNullType"))
     });
 
     unsafe fn resolve(class_name: *const std::os::raw::c_char) -> VALUE {
