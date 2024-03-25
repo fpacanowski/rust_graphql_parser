@@ -21,8 +21,8 @@ unsafe fn parse(query: VALUE) -> VALUE {
     let ptr = rb_sys::RSTRING_PTR(query) as *const u8;
     let len = rb_sys::RSTRING_LEN(query) as usize;
     // let query_str = std::ffi::CStr::from_ptr(query_ptr).to_str().unwrap();
-    let query_str = std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr, len)).to_owned();
-    let ast = parse_query::<String>(&query_str).unwrap();
+    let query_str = std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr, len));
+    let ast = parse_query::<&str>(&query_str).unwrap();
     // let result: String = format!("{:?}", ast);
     // // let result: String = "foo".to_string();
     // return rb_str_new(result.as_ptr() as *const c_char, result.len().try_into().unwrap());

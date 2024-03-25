@@ -16,7 +16,7 @@ macro_rules! static_cstring {
     }};
 }
 
-pub unsafe fn translate_document(doc: &Document<'_, String>) -> VALUE {
+pub unsafe fn translate_document<'a>(doc: &'a Document<'a, &'a str>) -> VALUE {
     let definitions = rb_sys::rb_ary_new();
     for x in doc.definitions.iter() {
         rb_sys::rb_ary_push(definitions, translate_definition(x));
@@ -27,14 +27,14 @@ pub unsafe fn translate_document(doc: &Document<'_, String>) -> VALUE {
     return build_instance(*classes::DOCUMENT, kwargs);
 }
 
-unsafe fn translate_definition(definition: &Definition<'_, String>) -> VALUE {
+unsafe fn translate_definition<'a>(definition: &'a Definition<'a, &'a str>) -> VALUE {
     return match definition {
         Definition::Operation(operation) => translate_operation_definition(operation),
         Definition::Fragment(fragment) => translate_fragment_definition(fragment),
     };
 }
 
-unsafe fn translate_operation_definition(operation_definition: &OperationDefinition<'_, String>) -> VALUE {
+unsafe fn translate_operation_definition<'a>(operation_definition: &'a OperationDefinition<'a, &'a str>) -> VALUE {
     return match operation_definition {
         OperationDefinition::Query(query) => translate_query(query),
         OperationDefinition::SelectionSet(selection_set) => translate_selection_set(selection_set),
@@ -43,7 +43,7 @@ unsafe fn translate_operation_definition(operation_definition: &OperationDefinit
     };
 }
 
-unsafe fn translate_query(query: &Query<'_, String>) -> VALUE {
+unsafe fn translate_query<'a>(query: &Query<'a, &'a str>) -> VALUE {
     let kwargs = rb_hash_new();
     rb_hash_aset(kwargs, *symbols::OPERATION_TYPE, ruby_str("query"));
     if let Some(query_name) = &query.name {
@@ -56,7 +56,7 @@ unsafe fn translate_query(query: &Query<'_, String>) -> VALUE {
     return build_instance(*classes::OPERATION_DEFINITION, kwargs);
 }
 
-unsafe fn translate_variable_definitions(definitions: &Vec<VariableDefinition<'_, String>>) -> VALUE {
+unsafe fn translate_variable_definitions<'a>(definitions: &Vec<VariableDefinition<'a, &'a str>>) -> VALUE {
     let result:VALUE = rb_ary_new_capa(definitions.len() as _);
     for x in definitions {
         let kwargs = build_hash(&[
@@ -68,15 +68,15 @@ unsafe fn translate_variable_definitions(definitions: &Vec<VariableDefinition<'_
     return result;
 }
 
-unsafe fn translate_mutation(query: &Mutation<'_, String>) -> VALUE {
+unsafe fn translate_mutation<'a>(query: &Mutation<'a, &'a str>) -> VALUE {
     unimplemented()
 }
 
-unsafe fn translate_subscription(query: &Subscription<'_, String>) -> VALUE {
+unsafe fn translate_subscription<'a>(query: &Subscription<'a, &'a str>) -> VALUE {
     unimplemented()
 }
 
-unsafe fn translate_fragment_definition(fragment_definition: &FragmentDefinition<'_, String>) -> VALUE {
+unsafe fn translate_fragment_definition<'a>(fragment_definition: &FragmentDefinition<'a, &'a str>) -> VALUE {
     let kwargs = build_hash(&[
         *symbols::NAME, ruby_str(&fragment_definition.name),
         *symbols::TYPE, translate_type_condition(&fragment_definition.type_condition),
@@ -85,13 +85,13 @@ unsafe fn translate_fragment_definition(fragment_definition: &FragmentDefinition
     return build_instance(*classes::FRAGMENT_DEFINITION, kwargs);
 }
 
-unsafe fn translate_type_condition(type_condition: &TypeCondition<'_, String>) -> VALUE {
+unsafe fn translate_type_condition<'a>(type_condition: &TypeCondition<'a, &'a str>) -> VALUE {
     let TypeCondition::On(type_name) = type_condition;
     let kwargs = build_hash(&[*symbols::NAME, ruby_str(type_name)]);
     return build_instance(*classes::TYPE_NAME, kwargs);
 }
 
-unsafe fn translate_selection_set(selection_set: &SelectionSet<'_, String>) -> VALUE {
+unsafe fn translate_selection_set<'a>(selection_set: &SelectionSet<'a, &'a str>) -> VALUE {
     let result: VALUE = rb_ary_new_capa(selection_set.items.len() as _);
     for x in selection_set.items.iter() {
         rb_ary_push(result, translate_selection(x));
@@ -117,7 +117,7 @@ unsafe fn translate_selection_set(selection_set: &SelectionSet<'_, String>) -> V
     // return hash;
 }
 
-unsafe fn translate_selection(selection: &Selection<'_, String>) -> VALUE {
+unsafe fn translate_selection<'a>(selection: &Selection<'a, &'a str>) -> VALUE {
     return match selection {
         Selection::Field(field) => translate_field(field),
         Selection::FragmentSpread(fragment_spread) => translate_fragment_spread(fragment_spread),
@@ -125,7 +125,7 @@ unsafe fn translate_selection(selection: &Selection<'_, String>) -> VALUE {
     };
 }
 
-unsafe fn translate_field(field: &Field<'_, String>) -> VALUE {
+unsafe fn translate_field<'a>(field: &Field<'a, &'a str>) -> VALUE {
     let arguments: VALUE = rb_ary_new_capa(field.arguments.len() as _);
     for (arg_name, arg_value) in &field.arguments {
         rb_ary_push(arguments, translate_argument(arg_name, arg_value));
@@ -142,7 +142,7 @@ unsafe fn translate_field(field: &Field<'_, String>) -> VALUE {
     return build_instance(*classes::FIELD, kwargs);
 }
 
-unsafe fn translate_argument(name: &str, value: &Value<'_, String>) -> VALUE {
+unsafe fn translate_argument<'a>(name: &str, value: &Value<'a, &'a str>) -> VALUE {
     let kwargs = build_hash(&[
         *symbols::NAME, ruby_str(name),
         *symbols::VALUE, translate_value(value),
@@ -150,7 +150,7 @@ unsafe fn translate_argument(name: &str, value: &Value<'_, String>) -> VALUE {
     return build_instance(*classes::ARGUMENT, kwargs);
 }
 
-unsafe fn translate_value(value: &Value<'_, String>) -> VALUE {
+unsafe fn translate_value<'a>(value: &Value<'a, &'a str>) -> VALUE {
     return match value {
         Value::Variable(variable) => {
             let kwargs = build_hash(&[
@@ -194,15 +194,15 @@ unsafe fn translate_value(value: &Value<'_, String>) -> VALUE {
     };
 }
 
-unsafe fn translate_directive(directive: &Directive<'_, String>) -> VALUE {
+unsafe fn translate_directive<'a>(directive: &Directive<'a, &'a str>) -> VALUE {
     unimplemented()
 }
 
-unsafe fn translate_fragment_spread(fragment_spread: &FragmentSpread<'_, String>) -> VALUE {
+unsafe fn translate_fragment_spread<'a>(fragment_spread: &FragmentSpread<'a, &'a str>) -> VALUE {
     unimplemented()
 }
 
-unsafe fn translate_inline_fragment(inline_fragment: &InlineFragment<'_, String>) -> VALUE {
+unsafe fn translate_inline_fragment<'a>(inline_fragment: &InlineFragment<'a, &'a str>) -> VALUE {
     let kwargs = build_hash(&[
         *symbols::SELECTIONS, translate_selection_set(&inline_fragment.selection_set),
     ]);
@@ -219,7 +219,7 @@ unsafe fn translate_inline_fragment(inline_fragment: &InlineFragment<'_, String>
     return build_instance(*classes::INLINE_FRAGMENT, kwargs);
 }
 
-unsafe fn translate_type(type_def: &Type<'_, String>) -> VALUE {
+unsafe fn translate_type<'a>(type_def: &Type<'a, &'a str>) -> VALUE {
     return match type_def {
         Type::NamedType(type_name) => {
             let kwargs = build_hash(&[*symbols::NAME, ruby_str(&type_name)]);
