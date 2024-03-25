@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'rust_graphql_parser'
 require 'benchmark/ips'
+require 'graphql/c_parser'
 
 describe 'Parsing' do
   %w[
@@ -61,13 +62,11 @@ describe 'Parsing - new' do
     # directive_args_multiline
     # fragment_spread
     # inline_fragment_dir
-    # inline_fragment
     # minimal
     # minimal_mutation
     # mutation_directive
     # mutation_nameless_vars
     # nested_field_arguments
-    # nested_selection
     # query_arguments
     # query_arguments_multiline
     # query_array_argument_multiline
@@ -83,15 +82,17 @@ describe 'Parsing - new' do
     # query_var_default_object
     # query_var_defaults
     # query_var_default_string
-    # string_literal
     # subscription_directive
   %w[
     field_arguments
     fragment
+    inline_fragment
     minimal_query
     named_query
+    nested_selection
     query_vars
     query_aliases
+    string_literal
     types
   ].each do |filename|
     specify filename do

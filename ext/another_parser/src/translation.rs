@@ -133,6 +133,7 @@ unsafe fn translate_field(field: &Field<'_, String>) -> VALUE {
     let kwargs = build_hash(&[
         *symbols::NAME, ruby_str(&field.name),
         *symbols::ARGUMENTS, arguments,
+        *symbols::SELECTIONS, translate_selection_set(&field.selection_set),
     ]);
     if let Some(alias) = &field.alias {
         rb_hash_aset(kwargs, *symbols::FIELD_ALIAS, ruby_str(&alias));
@@ -202,7 +203,20 @@ unsafe fn translate_fragment_spread(fragment_spread: &FragmentSpread<'_, String>
 }
 
 unsafe fn translate_inline_fragment(inline_fragment: &InlineFragment<'_, String>) -> VALUE {
-    unimplemented()
+    let kwargs = build_hash(&[
+        *symbols::SELECTIONS, translate_selection_set(&inline_fragment.selection_set),
+    ]);
+    if let Some(TypeCondition::On(on_type)) = &inline_fragment.type_condition {
+        rb_hash_aset(
+            kwargs,
+            *symbols::TYPE,
+            build_instance(
+                *classes::TYPE_NAME,
+                build_hash(&[*symbols::NAME, ruby_str(on_type)])
+            )
+        );
+    }
+    return build_instance(*classes::INLINE_FRAGMENT, kwargs);
 }
 
 unsafe fn translate_type(type_def: &Type<'_, String>) -> VALUE {
@@ -296,6 +310,9 @@ mod classes {
     });
     pub static ENUM: Lazy<VALUE> = Lazy::new(|| unsafe {
         resolve(static_cstring!("Enum"))
+    });
+    pub static INLINE_FRAGMENT: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("InlineFragment"))
     });
 
     unsafe fn resolve(class_name: *const std::os::raw::c_char) -> VALUE {
