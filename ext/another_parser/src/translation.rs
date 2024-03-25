@@ -27,9 +27,36 @@ pub unsafe fn translate_document(doc: &Document<'_, String>) -> VALUE {
 
 unsafe fn translate_definition(definition: &Definition<'_, String>) -> VALUE {
     return match definition {
-        Definition::Operation(operation) => unimplemented(),
+        Definition::Operation(operation) => translate_operation_definition(operation),
         Definition::Fragment(fragment) => translate_fragment_definition(fragment),
     };
+}
+
+unsafe fn translate_operation_definition(operation_definition: &OperationDefinition<'_, String>) -> VALUE {
+    return match operation_definition {
+        OperationDefinition::Query(query) => translate_query(query),
+        OperationDefinition::SelectionSet(selection_set) => translate_selection_set(selection_set),
+        OperationDefinition::Mutation(mutation) => translate_mutation(mutation),
+        OperationDefinition::Subscription(subscription) => translate_subscription(subscription),
+    };
+}
+
+unsafe fn translate_query(query: &Query<'_, String>) -> VALUE {
+    let kwargs = rb_hash_new();
+    rb_hash_aset(kwargs, *symbols::OPERATION_TYPE, ruby_str("query"));
+    if let Some(query_name) = &query.name {
+        rb_hash_aset(kwargs, *symbols::NAME, ruby_str(&query_name));
+    }
+    rb_hash_aset(kwargs, *symbols::SELECTIONS, translate_selection_set(&query.selection_set));
+    return build_instance(*classes::OPERATION_DEFINITION, kwargs);
+}
+
+unsafe fn translate_mutation(query: &Mutation<'_, String>) -> VALUE {
+    unimplemented()
+}
+
+unsafe fn translate_subscription(query: &Subscription<'_, String>) -> VALUE {
+    unimplemented()
 }
 
 unsafe fn translate_fragment_definition(fragment_definition: &FragmentDefinition<'_, String>) -> VALUE {
@@ -110,6 +137,9 @@ mod symbols {
     pub static SELECTIONS: Lazy<VALUE> = Lazy::new(|| unsafe {
         rb_id2sym(rb_intern!("selections"))
     });
+    pub static OPERATION_TYPE: Lazy<VALUE> = Lazy::new(|| unsafe {
+        rb_id2sym(rb_intern!("operation_type"))
+    });
 }
 
 mod classes {
@@ -126,6 +156,9 @@ mod classes {
     });
     pub static TYPE_NAME: Lazy<VALUE> = Lazy::new(|| unsafe {
         resolve(static_cstring!("TypeName"))
+    });
+    pub static OPERATION_DEFINITION: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("OperationDefinition"))
     });
 
     unsafe fn resolve(class_name: *const std::os::raw::c_char) -> VALUE {
