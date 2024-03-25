@@ -1,3 +1,5 @@
+use std::any::type_name;
+
 use graphql_parser::query::{
     Definition, Document, Field, FragmentDefinition, FragmentSpread, InlineFragment, Mutation,
     OperationDefinition, Query, Selection, SelectionSet, Subscription, TypeCondition,
@@ -47,8 +49,23 @@ unsafe fn translate_query(query: &Query<'_, String>) -> VALUE {
     if let Some(query_name) = &query.name {
         rb_hash_aset(kwargs, *symbols::NAME, ruby_str(&query_name));
     }
-    rb_hash_aset(kwargs, *symbols::SELECTIONS, translate_selection_set(&query.selection_set));
+    rb_hash_aset(kwargs, *symbols::SELECTIONS,
+        translate_selection_set(&query.selection_set));
+    rb_hash_aset(kwargs, *symbols::VARIABLES, 
+        translate_variable_definitions(&query.variable_definitions));
     return build_instance(*classes::OPERATION_DEFINITION, kwargs);
+}
+
+unsafe fn translate_variable_definitions(definitions: &Vec<VariableDefinition<'_, String>>) -> VALUE {
+    let result:VALUE = rb_ary_new_capa(definitions.len() as _);
+    for x in definitions {
+        let kwargs = build_hash(&[
+            *symbols::NAME, ruby_str(&x.name),
+            *symbols::TYPE, translate_type(&x.var_type),
+        ]);
+        rb_ary_push(result, build_instance(*classes::VARIABLE_DEFINITION, kwargs));
+    }
+    return result;
 }
 
 unsafe fn translate_mutation(query: &Mutation<'_, String>) -> VALUE {
@@ -125,6 +142,21 @@ unsafe fn translate_inline_fragment(inline_fragment: &InlineFragment<'_, String>
     unimplemented()
 }
 
+unsafe fn translate_type(type_def: &Type<'_, String>) -> VALUE {
+    return match type_def {
+        Type::NamedType(type_name) => {
+            let kwargs = build_hash(&[*symbols::NAME, ruby_str(&type_name)]);
+            build_instance(*classes::TYPE_NAME, kwargs)
+        }
+        Type::ListType(inner_type) => {
+            unimplemented()
+        }
+        Type::NonNullType(inner_type) => {
+            unimplemented()
+        }
+    };
+}
+
 mod symbols {
     use rb_sys::{VALUE, rb_intern, rb_hash_new, rb_id2sym, rb_hash_aset, rb_hash_bulk_insert};
     use once_cell::sync::Lazy;
@@ -139,6 +171,9 @@ mod symbols {
     });
     pub static OPERATION_TYPE: Lazy<VALUE> = Lazy::new(|| unsafe {
         rb_id2sym(rb_intern!("operation_type"))
+    });
+    pub static VARIABLES: Lazy<VALUE> = Lazy::new(|| unsafe {
+        rb_id2sym(rb_intern!("variables"))
     });
 }
 
@@ -159,6 +194,9 @@ mod classes {
     });
     pub static OPERATION_DEFINITION: Lazy<VALUE> = Lazy::new(|| unsafe {
         resolve(static_cstring!("OperationDefinition"))
+    });
+    pub static VARIABLE_DEFINITION: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("VariableDefinition"))
     });
 
     unsafe fn resolve(class_name: *const std::os::raw::c_char) -> VALUE {

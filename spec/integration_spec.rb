@@ -60,13 +60,11 @@ describe 'Parsing - new' do
     # directive_args
     # directive_args_multiline
     # field_arguments
-    # fragment
     # fragment_spread
     # inline_fragment_dir
     # inline_fragment
     # minimal
     # minimal_mutation
-    # minimal_query
     # mutation_directive
     # mutation_nameless_vars
     # nested_field_arguments
@@ -87,12 +85,14 @@ describe 'Parsing - new' do
     # query_var_default_object
     # query_var_defaults
     # query_var_default_string
-    # query_vars
     # string_literal
     # subscription_directive
     # types
   %w[
+    fragment
+    minimal_query
     named_query
+    query_vars
   ].each do |filename|
     specify filename do
       source = File.read("spec/data/#{filename}.graphql")
