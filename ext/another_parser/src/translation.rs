@@ -13,44 +13,8 @@ macro_rules! static_cstring {
         concat!($string, "\0").as_ptr() as *const std::os::raw::c_char
     }};
 }
-unsafe fn resolve(class_name: *const std::os::raw::c_char) -> VALUE {
-    let cGraphQL = rb_sys::rb_const_get(
-        rb_sys::rb_cObject, 
-        rb_intern(static_cstring!("GraphQL")));
-    let cLanguage = rb_sys::rb_const_get(
-        cGraphQL, 
-        rb_intern(static_cstring!("Language")));
-    let cNodes = rb_sys::rb_const_get(
-        cLanguage, 
-        rb_intern(static_cstring!("Nodes")));
-    
-    return rb_sys::rb_const_get(
-        cNodes,
-        rb_intern(class_name));
 
-}
 pub unsafe fn translate_document(doc: &Document<'_, String>) -> VALUE {
-    // GraphQL::Language::Nodes
-    let cGraphQL = rb_sys::rb_const_get(
-        rb_sys::rb_cObject, 
-        rb_intern(static_cstring!("GraphQL")));
-    let cLanguage = rb_sys::rb_const_get(
-        cGraphQL, 
-        rb_intern(static_cstring!("Language")));
-    let cNodes = rb_sys::rb_const_get(
-        cLanguage, 
-        rb_intern(static_cstring!("Nodes")));
-    
-    let class = rb_sys::rb_const_get(
-        cNodes,
-        rb_intern(static_cstring!("Document")));
-    // let hash = build_ruby_node("document");
-    // let definitions = RArray::new();
-    // for x in doc.definitions.iter() {
-    //     definitions.push(translate_definition(x)).unwrap();
-    // }
-    // hash.aset(Symbol::new("definitions"), definitions).unwrap();
-    // return rb_sys::rb_int2inum(7);
     let definitions = rb_sys::rb_ary_new();
     for x in doc.definitions.iter() {
         rb_sys::rb_ary_push(definitions, translate_definition(x));
@@ -58,20 +22,14 @@ pub unsafe fn translate_document(doc: &Document<'_, String>) -> VALUE {
     let kwargs = rb_hash_new();
     rb_sys::rb_hash_aset(
         kwargs, rb_sys::rb_id2sym(rb_intern(static_cstring!("definitions"))), definitions);
-    return rb_sys::rb_class_new_instance_kw(1, &kwargs, class, 1);
-    // return rb_sys::rb_class_new_instance(0, std::ptr::null(), class);
-    // return rb_sys::Qnil.into();
+    return build_instance(*classes::DOCUMENT, kwargs);
 }
 
 unsafe fn translate_definition(definition: &Definition<'_, String>) -> VALUE {
     return match definition {
-        Definition::Operation(operation) => rb_sys::Qnil.into(),
+        Definition::Operation(operation) => unimplemented(),
         Definition::Fragment(fragment) => translate_fragment_definition(fragment),
     };
-}
-
-unsafe fn ruby_str(rust_str: &str) -> VALUE {
-    rb_sys::rb_str_new(rust_str.as_ptr() as _,rust_str.len() as _)
 }
 
 unsafe fn translate_fragment_definition(fragment_definition: &FragmentDefinition<'_, String>) -> VALUE {
@@ -80,21 +38,13 @@ unsafe fn translate_fragment_definition(fragment_definition: &FragmentDefinition
         *symbols::TYPE, translate_type_condition(&fragment_definition.type_condition),
         *symbols::SELECTIONS, translate_selection_set(&fragment_definition.selection_set),
     ]);
-
-    let class = resolve(static_cstring!("FragmentDefinition"));
-    return rb_sys::rb_class_new_instance_kw(1, &kwargs, class, 1);
-    // hash.aset(
-    //     Symbol::new("selection_set"),
-    //     translate_selection_set(&fragment_definition.selection_set),
-    // )
-    // .unwrap();
+    return build_instance(*classes::FRAGMENT_DEFINITION, kwargs);
 }
 
 unsafe fn translate_type_condition(type_condition: &TypeCondition<'_, String>) -> VALUE {
     let TypeCondition::On(type_name) = type_condition;
     let kwargs = build_hash(&[*symbols::NAME, ruby_str(type_name)]);
-    let class = resolve(static_cstring!("TypeName"));
-    return rb_sys::rb_class_new_instance_kw(1, &kwargs, class, 1);
+    return build_instance(*classes::TYPE_NAME, kwargs);
 }
 
 unsafe fn translate_selection_set(selection_set: &SelectionSet<'_, String>) -> VALUE {
@@ -133,8 +83,7 @@ unsafe fn translate_selection(selection: &Selection<'_, String>) -> VALUE {
 
 unsafe fn translate_field(field: &Field<'_, String>) -> VALUE {
     let kwargs = build_hash(&[*symbols::NAME, ruby_str(&field.name)]);
-    let class = resolve(static_cstring!("Field"));
-    return rb_sys::rb_class_new_instance_kw(1, &kwargs, class, 1);
+    return build_instance(*classes::FIELD, kwargs);
 }
 
 unsafe fn translate_directive(directive: &Directive<'_, String>) -> VALUE {
@@ -163,14 +112,40 @@ mod symbols {
     });
 }
 
+mod classes {
+    use rb_sys::{VALUE, rb_intern};
+    use once_cell::sync::Lazy;
+    pub static DOCUMENT: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("Document"))
+    });
+    pub static FIELD: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("Field"))
+    });
+    pub static FRAGMENT_DEFINITION: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("FragmentDefinition"))
+    });
+    pub static TYPE_NAME: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("TypeName"))
+    });
+
+    unsafe fn resolve(class_name: *const std::os::raw::c_char) -> VALUE {
+        let cGraphQL = rb_sys::rb_const_get(
+            rb_sys::rb_cObject, 
+            rb_intern!("GraphQL"));
+        let cLanguage = rb_sys::rb_const_get(
+            cGraphQL, 
+            rb_intern!("Language"));
+        let cNodes = rb_sys::rb_const_get(
+            cLanguage, 
+            rb_intern!("Nodes"));
+        
+        return rb_sys::rb_const_get(
+            cNodes,
+            rb_intern(class_name));
+    }    
+}
+
 unsafe fn unimplemented() -> VALUE {
-    // let result = rb_hash_new();
-    // rb_hash_aset(
-    //     result,
-    //     rb_id2sym(rb_intern(static_cstring!("unimplemented"))),
-    //     rb_sys::Qtrue as _
-    // );
-    // return result;
     return build_hash(&[rb_id2sym(rb_intern(static_cstring!("unimplemented"))), rb_sys::Qtrue as _])
 }
 
@@ -178,4 +153,12 @@ unsafe fn build_hash(arr: &[VALUE]) -> VALUE {
     let result = rb_hash_new();
     rb_hash_bulk_insert(arr.len() as _, arr.as_ptr(), result);
     return result;
+}
+
+unsafe fn build_instance(class: VALUE, kwargs: VALUE) -> VALUE {
+    rb_sys::rb_class_new_instance_kw(1, &kwargs, class, 1)
+}
+
+unsafe fn ruby_str(rust_str: &str) -> VALUE {
+    rb_sys::rb_str_new(rust_str.as_ptr() as _,rust_str.len() as _)
 }
