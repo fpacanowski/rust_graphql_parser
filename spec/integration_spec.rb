@@ -59,7 +59,6 @@ describe 'Parsing - new' do
     # big_query
     # directive_args
     # directive_args_multiline
-    # field_arguments
     # fragment_spread
     # inline_fragment_dir
     # inline_fragment
@@ -69,7 +68,6 @@ describe 'Parsing - new' do
     # mutation_nameless_vars
     # nested_field_arguments
     # nested_selection
-    # query_aliases
     # query_arguments
     # query_arguments_multiline
     # query_array_argument_multiline
@@ -88,10 +86,12 @@ describe 'Parsing - new' do
     # string_literal
     # subscription_directive
   %w[
+    field_arguments
     fragment
     minimal_query
     named_query
     query_vars
+    query_aliases
     types
   ].each do |filename|
     specify filename do

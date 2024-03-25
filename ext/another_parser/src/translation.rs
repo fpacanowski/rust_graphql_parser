@@ -126,8 +126,71 @@ unsafe fn translate_selection(selection: &Selection<'_, String>) -> VALUE {
 }
 
 unsafe fn translate_field(field: &Field<'_, String>) -> VALUE {
-    let kwargs = build_hash(&[*symbols::NAME, ruby_str(&field.name)]);
+    let arguments: VALUE = rb_ary_new_capa(field.arguments.len() as _);
+    for (arg_name, arg_value) in &field.arguments {
+        rb_ary_push(arguments, translate_argument(arg_name, arg_value));
+    }
+    let kwargs = build_hash(&[
+        *symbols::NAME, ruby_str(&field.name),
+        *symbols::ARGUMENTS, arguments,
+    ]);
+    if let Some(alias) = &field.alias {
+        rb_hash_aset(kwargs, *symbols::FIELD_ALIAS, ruby_str(&alias));
+    }
+
     return build_instance(*classes::FIELD, kwargs);
+}
+
+unsafe fn translate_argument(name: &str, value: &Value<'_, String>) -> VALUE {
+    let kwargs = build_hash(&[
+        *symbols::NAME, ruby_str(name),
+        *symbols::VALUE, translate_value(value),
+    ]);
+    return build_instance(*classes::ARGUMENT, kwargs);
+}
+
+unsafe fn translate_value(value: &Value<'_, String>) -> VALUE {
+    return match value {
+        Value::Variable(variable) => {
+            let kwargs = build_hash(&[
+                *symbols::NAME, ruby_str(variable),
+            ]);
+            build_instance(*classes::VARIABLE_IDENTIFIER, kwargs)
+        }
+        Value::Int(number) => {
+            rb_sys::rb_int2inum(number.as_i64().unwrap() as _)
+        }
+        Value::Float(number) => {
+            rb_sys::rb_float_new(*number)
+        }
+        Value::String(str) => {
+            ruby_str(str)
+        }
+        Value::Boolean(true) => { rb_sys::Qtrue as _ },
+        Value::Boolean(false) => { rb_sys::Qtrue as _ },
+        Value::Null => { 
+            build_instance(
+                *classes::NULL_VALUE,
+                build_hash(&[*symbols::NAME, ruby_str("null")])
+            )
+        },
+        Value::Enum(enum_name) => {
+            build_instance(
+                *classes::ENUM,
+                build_hash(&[*symbols::NAME, ruby_str(&enum_name)])
+            )
+        }
+        Value::List(vals) => {
+            let result: VALUE = rb_ary_new_capa(vals.len() as _);
+            for v in vals.iter() {
+                rb_ary_push(result, translate_value(v));
+            }
+            result
+        }
+        Value::Object(obj) => {
+            unimplemented()
+        }
+    };
 }
 
 unsafe fn translate_directive(directive: &Directive<'_, String>) -> VALUE {
@@ -184,6 +247,15 @@ mod symbols {
     pub static OF_TYPE: Lazy<VALUE> = Lazy::new(|| unsafe {
         rb_id2sym(rb_intern!("of_type"))
     });
+    pub static FIELD_ALIAS: Lazy<VALUE> = Lazy::new(|| unsafe {
+        rb_id2sym(rb_intern!("field_alias"))
+    });
+    pub static ARGUMENTS: Lazy<VALUE> = Lazy::new(|| unsafe {
+        rb_id2sym(rb_intern!("arguments"))
+    });
+    pub static VALUE: Lazy<VALUE> = Lazy::new(|| unsafe {
+        rb_id2sym(rb_intern!("value"))
+    });
 }
 
 mod classes {
@@ -212,6 +284,18 @@ mod classes {
     });
     pub static NON_NULL_TYPE: Lazy<VALUE> = Lazy::new(|| unsafe {
         resolve(static_cstring!("NonNullType"))
+    });
+    pub static ARGUMENT: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("Argument"))
+    });
+    pub static VARIABLE_IDENTIFIER: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("VariableIdentifier"))
+    });
+    pub static NULL_VALUE: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("NullValue"))
+    });
+    pub static ENUM: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("Enum"))
     });
 
     unsafe fn resolve(class_name: *const std::os::raw::c_char) -> VALUE {
