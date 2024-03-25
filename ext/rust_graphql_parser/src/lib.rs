@@ -2,6 +2,8 @@ extern crate graphql_parser;
 
 mod translation;
 
+use std::hint::black_box;
+
 use graphql_parser::query::parse_query;
 
 use magnus::{define_module, exception, function, prelude::*, Error, RHash};
@@ -14,8 +16,10 @@ fn parse(query: String) -> Result<RHash, Error> {
 }
 
 fn parse_raw(query: String) -> String {
-    let ast = parse_query::<String>(&query);
-    return format!("{:?}",ast);
+    let ast = parse_query::<&str>(&query);
+    black_box(ast);
+    return "".to_owned();
+    // return format!("{:?}",ast);
 }
 
 #[magnus::init]
