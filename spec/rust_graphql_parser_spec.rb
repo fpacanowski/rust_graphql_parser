@@ -20,4 +20,11 @@ RSpec.describe RustGraphqlParser do
          :type_condition=>{:on=>"Foo"}}]}
     )
   end
+
+  specify do
+    query = "fragment MyFragment on Foo { value }"
+    pp (a = GraphQL.parse(query))
+    pp (b = AnotherParser.parse(query))
+    expect(b).to eq(a)
+  end
 end

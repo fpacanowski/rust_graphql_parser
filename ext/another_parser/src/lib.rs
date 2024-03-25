@@ -1,8 +1,14 @@
+use graphql_parser::query::parse_query;
+mod translation;
+
 use rb_sys::{
     rb_define_module, rb_define_singleton_method, rb_str_buf_append,
-    rb_utf8_str_new_cstr, VALUE,
+    rb_utf8_str_new_cstr, VALUE, rb_str_new, rb_string_value_ptr, rb_string_value_cstr
 };
 use std::{intrinsics::transmute, os::raw::c_char};
+
+use std::ffi::CStr;
+use std::str;
 
 // Converts a static &str to a C string usable in foreign functions.
 macro_rules! static_cstring {
@@ -11,18 +17,21 @@ macro_rules! static_cstring {
     }};
 }
 
-fn inner_hello(name: VALUE) -> VALUE {
-    let ret: VALUE;
-    unsafe {
-        ret = rb_str_buf_append(
-        rb_utf8_str_new_cstr(static_cstring!("Hello, ")), name
-    );
-    }
-    return ret;
+unsafe fn parse(query: VALUE) -> VALUE {
+    let ptr = rb_sys::RSTRING_PTR(query) as *const u8;
+    let len = rb_sys::RSTRING_LEN(query) as usize;
+    // let query_str = std::ffi::CStr::from_ptr(query_ptr).to_str().unwrap();
+    let query_str = std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr, len)).to_owned();
+    let ast = parse_query::<String>(&query_str).unwrap();
+    // let result: String = format!("{:?}", ast);
+    // // let result: String = "foo".to_string();
+    // return rb_str_new(result.as_ptr() as *const c_char, result.len().try_into().unwrap());
+    return translation::translate_document(&ast);
 }
 
-unsafe extern "C" fn hello(_: VALUE, name: VALUE) -> VALUE {
-    return inner_hello(name);
+unsafe extern "C" fn wrapped_parse(_: VALUE, query: VALUE) -> VALUE {
+    let result = parse(query);
+    return result;
 }
 
 #[no_mangle]
@@ -31,9 +40,9 @@ unsafe extern "C" fn Init_another_parser() {
 
     rb_define_singleton_method(
         module,
-        static_cstring!("hello"),
+        static_cstring!("parse"),
         Some(transmute::<unsafe extern "C" fn(VALUE, VALUE) -> VALUE, _>(
-            hello,
+            wrapped_parse,
         )),
         1,
     );
