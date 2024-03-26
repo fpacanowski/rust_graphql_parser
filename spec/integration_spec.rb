@@ -66,13 +66,9 @@ describe 'Parsing - new' do
     # minimal_mutation
     # mutation_directive
     # mutation_nameless_vars
-    # query_arguments
     # query_arguments_multiline
     # query_array_argument_multiline
     # query_directive
-    # query_list_argument
-    # query_nameless_vars
-    # query_nameless_vars_multiple_fields_canonical
     # query_nameless_vars_multiple_fields
     # query_object_argument
     # query_object_argument_multiline
@@ -92,6 +88,10 @@ describe 'Parsing - new' do
     nested_selection
     query_vars
     query_aliases
+    query_arguments
+    query_list_argument
+    query_nameless_vars
+    query_nameless_vars_multiple_fields_canonical
     string_literal
     types
   ].each do |filename|
