@@ -138,6 +138,11 @@ unsafe fn translate_field<'a>(field: &Field<'a, &'a str>) -> VALUE {
     if let Some(alias) = &field.alias {
         rb_hash_aset(kwargs, *symbols::FIELD_ALIAS, ruby_str(&alias));
     }
+    let directives = rb_ary_new_capa(field.directives.len() as _);
+    for directive in field.directives.iter() {
+        rb_ary_push(directives, translate_directive(directive));
+    }
+    rb_hash_aset(kwargs, *symbols::DIRECTIVES, directives);
 
     return build_instance(*classes::FIELD, kwargs);
 }
@@ -168,7 +173,7 @@ unsafe fn translate_value<'a>(value: &Value<'a, &'a str>) -> VALUE {
             ruby_str(str)
         }
         Value::Boolean(true) => { rb_sys::Qtrue as _ },
-        Value::Boolean(false) => { rb_sys::Qtrue as _ },
+        Value::Boolean(false) => { rb_sys::Qfalse as _ },
         Value::Null => { 
             build_instance(
                 *classes::NULL_VALUE,
@@ -202,7 +207,15 @@ unsafe fn translate_value<'a>(value: &Value<'a, &'a str>) -> VALUE {
 }
 
 unsafe fn translate_directive<'a>(directive: &Directive<'a, &'a str>) -> VALUE {
-    unimplemented()
+    let arguments: VALUE = rb_ary_new_capa(directive.arguments.len() as _);
+    for (name, val) in directive.arguments.iter() {
+        rb_ary_push(arguments, translate_argument(name, val));
+    }
+    let kwargs = build_hash(&[
+        *symbols::NAME, ruby_str(&directive.name),
+        *symbols::ARGUMENTS, arguments,
+    ]);
+    return build_instance(*classes::DIRECTIVE, kwargs);
 }
 
 unsafe fn translate_fragment_spread<'a>(fragment_spread: &FragmentSpread<'a, &'a str>) -> VALUE {
@@ -277,6 +290,9 @@ mod symbols {
     pub static VALUE: Lazy<VALUE> = Lazy::new(|| unsafe {
         rb_id2sym(rb_intern!("value"))
     });
+    pub static DIRECTIVES: Lazy<VALUE> = Lazy::new(|| unsafe {
+        rb_id2sym(rb_intern!("directives"))
+    });
 }
 
 mod classes {
@@ -323,6 +339,9 @@ mod classes {
     });
     pub static INPUT_OBJECT: Lazy<VALUE> = Lazy::new(|| unsafe {
         resolve(static_cstring!("InputObject"))
+    });
+    pub static DIRECTIVE: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("Directive"))
     });
 
     unsafe fn resolve(class_name: *const std::os::raw::c_char) -> VALUE {

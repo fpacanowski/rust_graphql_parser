@@ -58,8 +58,6 @@ end
 
 describe 'Parsing - new' do
     # big_query
-    # directive_args
-    # directive_args_multiline
     # fragment_spread
     # inline_fragment_dir
     # minimal
@@ -79,6 +77,8 @@ describe 'Parsing - new' do
     # query_var_default_string
     # subscription_directive
   %w[
+    directive_args
+    directive_args_multiline
     field_arguments
     fragment
     inline_fragment
