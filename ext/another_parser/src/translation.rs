@@ -219,7 +219,10 @@ unsafe fn translate_directive<'a>(directive: &Directive<'a, &'a str>) -> VALUE {
 }
 
 unsafe fn translate_fragment_spread<'a>(fragment_spread: &FragmentSpread<'a, &'a str>) -> VALUE {
-    unimplemented()
+    let kwargs = build_hash(&[
+        *symbols::NAME, ruby_str(fragment_spread.fragment_name),
+    ]);
+    return build_instance(*classes::FRAGMENT_SPREAD, kwargs);
 }
 
 unsafe fn translate_inline_fragment<'a>(inline_fragment: &InlineFragment<'a, &'a str>) -> VALUE {
@@ -342,6 +345,9 @@ mod classes {
     });
     pub static DIRECTIVE: Lazy<VALUE> = Lazy::new(|| unsafe {
         resolve(static_cstring!("Directive"))
+    });
+    pub static FRAGMENT_SPREAD: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("FragmentSpread"))
     });
 
     unsafe fn resolve(class_name: *const std::os::raw::c_char) -> VALUE {

@@ -58,7 +58,6 @@ end
 
 describe 'Parsing - new' do
     # big_query
-    # fragment_spread
     # inline_fragment_dir
     # minimal
     # minimal_mutation
@@ -81,6 +80,7 @@ describe 'Parsing - new' do
     directive_args_multiline
     field_arguments
     fragment
+    fragment_spread
     inline_fragment
     minimal_query
     named_query
