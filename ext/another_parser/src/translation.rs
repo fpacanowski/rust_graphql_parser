@@ -55,15 +55,53 @@ unsafe fn translate_top_level_selection_set<'a>(selection_set: &SelectionSet<'a,
 }
 
 unsafe fn translate_query<'a>(query: &Query<'a, &'a str>) -> VALUE {
+    translate_operation(
+        "query",
+        query.name,
+        &query.selection_set,
+        &query.variable_definitions,
+        &query.directives,
+    )
+}
+
+unsafe fn translate_mutation<'a>(mutation: &Mutation<'a, &'a str>) -> VALUE {
+    translate_operation(
+        "mutation",
+        mutation.name,
+        &mutation.selection_set,
+        &mutation.variable_definitions,
+        &mutation.directives,
+    )
+}
+
+unsafe fn translate_subscription<'a>(subscription: &Subscription<'a, &'a str>) -> VALUE {
+    translate_operation(
+        "subscription",
+        subscription.name,
+        &subscription.selection_set,
+        &subscription.variable_definitions,
+        &subscription.directives,
+    )
+}
+
+unsafe fn translate_operation<'a>(
+    operation_type: &str,
+    operation_name: Option<&'a str>,
+    selection_set: &SelectionSet<'a, &'a str>,
+    definitions: &Vec<VariableDefinition<'a, &'a str>>,
+    directives: &Vec<Directive<'a, &'a str>>
+) -> VALUE {
     let kwargs = rb_hash_new();
-    rb_hash_aset(kwargs, *symbols::OPERATION_TYPE, ruby_str("query"));
-    if let Some(query_name) = &query.name {
-        rb_hash_aset(kwargs, *symbols::NAME, ruby_str(&query_name));
+    rb_hash_aset(kwargs, *symbols::OPERATION_TYPE, ruby_str(operation_type));
+    if let Some(name) = &operation_name {
+        rb_hash_aset(kwargs, *symbols::NAME, ruby_str(name));
     }
     rb_hash_aset(kwargs, *symbols::SELECTIONS,
-        translate_selection_set(&query.selection_set));
+        translate_selection_set(selection_set));
     rb_hash_aset(kwargs, *symbols::VARIABLES, 
-        translate_variable_definitions(&query.variable_definitions));
+        translate_variable_definitions(definitions));
+    rb_hash_aset(kwargs, *symbols::DIRECTIVES, 
+        translate_directives(directives));    
     return build_instance(*classes::OPERATION_DEFINITION, kwargs);
 }
 
@@ -77,14 +115,6 @@ unsafe fn translate_variable_definitions<'a>(definitions: &Vec<VariableDefinitio
         rb_ary_push(result, build_instance(*classes::VARIABLE_DEFINITION, kwargs));
     }
     return result;
-}
-
-unsafe fn translate_mutation<'a>(query: &Mutation<'a, &'a str>) -> VALUE {
-    unimplemented()
-}
-
-unsafe fn translate_subscription<'a>(query: &Subscription<'a, &'a str>) -> VALUE {
-    unimplemented()
 }
 
 unsafe fn translate_fragment_definition<'a>(fragment_definition: &FragmentDefinition<'a, &'a str>) -> VALUE {
@@ -149,11 +179,7 @@ unsafe fn translate_field<'a>(field: &Field<'a, &'a str>) -> VALUE {
     if let Some(alias) = &field.alias {
         rb_hash_aset(kwargs, *symbols::FIELD_ALIAS, ruby_str(&alias));
     }
-    let directives = rb_ary_new_capa(field.directives.len() as _);
-    for directive in field.directives.iter() {
-        rb_ary_push(directives, translate_directive(directive));
-    }
-    rb_hash_aset(kwargs, *symbols::DIRECTIVES, directives);
+    rb_hash_aset(kwargs, *symbols::DIRECTIVES, translate_directives(&field.directives));
 
     return build_instance(*classes::FIELD, kwargs);
 }
@@ -215,6 +241,14 @@ unsafe fn translate_value<'a>(value: &Value<'a, &'a str>) -> VALUE {
             build_instance(*classes::INPUT_OBJECT, kwargs)
         }
     };
+}
+
+unsafe fn translate_directives<'a>(directives: &Vec<Directive<'a, &'a str>>) -> VALUE {
+    let result = rb_ary_new_capa(directives.len() as _);
+    for directive in directives.iter() {
+        rb_ary_push(result, translate_directive(directive));
+    }
+    return result;
 }
 
 unsafe fn translate_directive<'a>(directive: &Directive<'a, &'a str>) -> VALUE {
