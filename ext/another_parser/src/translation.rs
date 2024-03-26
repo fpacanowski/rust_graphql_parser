@@ -111,6 +111,9 @@ unsafe fn translate_variable_definitions<'a>(definitions: &Vec<VariableDefinitio
         let kwargs = build_hash(&[
             *symbols::NAME, ruby_str(&x.name),
             *symbols::TYPE, translate_type(&x.var_type),
+            *symbols::DEFAULT_VALUE, x.default_value.as_ref().map_or(rb_sys::Qnil as _,
+                 |x| {translate_value(&x)}
+            )
         ]);
         rb_ary_push(result, build_instance(*classes::VARIABLE_DEFINITION, kwargs));
     }
@@ -273,6 +276,7 @@ unsafe fn translate_fragment_spread<'a>(fragment_spread: &FragmentSpread<'a, &'a
 unsafe fn translate_inline_fragment<'a>(inline_fragment: &InlineFragment<'a, &'a str>) -> VALUE {
     let kwargs = build_hash(&[
         *symbols::SELECTIONS, translate_selection_set(&inline_fragment.selection_set),
+        *symbols::DIRECTIVES, translate_directives(&inline_fragment.directives),
     ]);
     if let Some(TypeCondition::On(on_type)) = &inline_fragment.type_condition {
         rb_hash_aset(
@@ -340,6 +344,9 @@ mod symbols {
     });
     pub static DIRECTIVES: Lazy<VALUE> = Lazy::new(|| unsafe {
         rb_id2sym(rb_intern!("directives"))
+    });
+    pub static DEFAULT_VALUE: Lazy<VALUE> = Lazy::new(|| unsafe {
+        rb_id2sym(rb_intern!("default_value"))
     });
 }
 
