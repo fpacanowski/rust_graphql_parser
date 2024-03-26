@@ -35,12 +35,23 @@ unsafe fn translate_definition<'a>(definition: &'a Definition<'a, &'a str>) -> V
 }
 
 unsafe fn translate_operation_definition<'a>(operation_definition: &'a OperationDefinition<'a, &'a str>) -> VALUE {
+    if let OperationDefinition::SelectionSet(selection_set) = &operation_definition {
+        return translate_top_level_selection_set(selection_set);
+    }
     return match operation_definition {
         OperationDefinition::Query(query) => translate_query(query),
         OperationDefinition::SelectionSet(selection_set) => translate_selection_set(selection_set),
         OperationDefinition::Mutation(mutation) => translate_mutation(mutation),
         OperationDefinition::Subscription(subscription) => translate_subscription(subscription),
     };
+}
+
+unsafe fn translate_top_level_selection_set<'a>(selection_set: &SelectionSet<'a, &'a str>) -> VALUE {
+    let kwargs = build_hash(&[
+        *symbols::OPERATION_TYPE, ruby_str("query"),
+        *symbols::SELECTIONS, translate_selection_set(selection_set),
+    ]);
+    return build_instance(*classes::OPERATION_DEFINITION, kwargs);
 }
 
 unsafe fn translate_query<'a>(query: &Query<'a, &'a str>) -> VALUE {

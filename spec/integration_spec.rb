@@ -59,7 +59,6 @@ end
 describe 'Parsing - new' do
     # big_query
     # inline_fragment_dir
-    # minimal
     # minimal_mutation
     # mutation_directive
     # mutation_nameless_vars
@@ -82,6 +81,7 @@ describe 'Parsing - new' do
     fragment
     fragment_spread
     inline_fragment
+    minimal
     minimal_query
     named_query
     nested_field_arguments
