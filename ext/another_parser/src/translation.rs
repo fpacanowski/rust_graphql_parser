@@ -349,3 +349,19 @@ unsafe fn build_instance(class: VALUE, kwargs: VALUE) -> VALUE {
 unsafe fn ruby_str(rust_str: &str) -> VALUE {
     rb_sys::rb_str_new(rust_str.as_ptr() as _,rust_str.len() as _)
 }
+
+macro_rules! build_node {
+    ($class:expr, $($args:expr),*) => {
+        rb_sys::rb_funcall(
+            $class,
+            rb_intern!("from_a"),
+            count_args!( $($args),* ),
+            $($args),*
+        );
+    };
+}
+
+macro_rules! count_args {
+    () => { 0 };
+    ($_arg:expr $(, $args:expr)*) => { 1 + count_args!($($args),*) };
+}
