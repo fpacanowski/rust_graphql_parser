@@ -167,13 +167,9 @@ unsafe fn translate_selection<'a>(selection: &Selection<'a, &'a str>) -> VALUE {
 }
 
 unsafe fn translate_field<'a>(field: &Field<'a, &'a str>) -> VALUE {
-    let arguments: VALUE = rb_ary_new_capa(field.arguments.len() as _);
-    for (arg_name, arg_value) in &field.arguments {
-        rb_ary_push(arguments, translate_argument(arg_name, arg_value));
-    }
     let kwargs = build_hash(&[
         *symbols::NAME, ruby_str(&field.name),
-        *symbols::ARGUMENTS, arguments,
+        *symbols::ARGUMENTS, translate_arguments(&field.arguments),
         *symbols::SELECTIONS, translate_selection_set(&field.selection_set),
     ]);
     if let Some(alias) = &field.alias {
@@ -182,6 +178,14 @@ unsafe fn translate_field<'a>(field: &Field<'a, &'a str>) -> VALUE {
     rb_hash_aset(kwargs, *symbols::DIRECTIVES, translate_directives(&field.directives));
 
     return build_instance(*classes::FIELD, kwargs);
+}
+
+unsafe fn translate_arguments<'a>(arguments: &Vec<(&'a str, Value<'a, &'a str>)>) -> VALUE {
+    let result: VALUE = rb_ary_new_capa(arguments.len() as _);
+    for (arg_name, arg_value) in arguments {
+        rb_ary_push(result, translate_argument(arg_name, arg_value));
+    }
+    return result;
 }
 
 unsafe fn translate_argument<'a>(name: &str, value: &Value<'a, &'a str>) -> VALUE {
@@ -252,13 +256,9 @@ unsafe fn translate_directives<'a>(directives: &Vec<Directive<'a, &'a str>>) -> 
 }
 
 unsafe fn translate_directive<'a>(directive: &Directive<'a, &'a str>) -> VALUE {
-    let arguments: VALUE = rb_ary_new_capa(directive.arguments.len() as _);
-    for (name, val) in directive.arguments.iter() {
-        rb_ary_push(arguments, translate_argument(name, val));
-    }
     let kwargs = build_hash(&[
         *symbols::NAME, ruby_str(&directive.name),
-        *symbols::ARGUMENTS, arguments,
+        *symbols::ARGUMENTS, translate_arguments(&directive.arguments),
     ]);
     return build_instance(*classes::DIRECTIVE, kwargs);
 }
