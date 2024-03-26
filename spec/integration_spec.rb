@@ -66,7 +66,6 @@ describe 'Parsing - new' do
     # minimal_mutation
     # mutation_directive
     # mutation_nameless_vars
-    # nested_field_arguments
     # query_arguments
     # query_arguments_multiline
     # query_array_argument_multiline
@@ -89,6 +88,7 @@ describe 'Parsing - new' do
     inline_fragment
     minimal_query
     named_query
+    nested_field_arguments
     nested_selection
     query_vars
     query_aliases

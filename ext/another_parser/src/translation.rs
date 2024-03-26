@@ -189,7 +189,14 @@ unsafe fn translate_value<'a>(value: &Value<'a, &'a str>) -> VALUE {
             result
         }
         Value::Object(obj) => {
-            unimplemented()
+            let arguments: VALUE = rb_ary_new_capa(obj.len() as _);
+            for (name, val) in obj.iter() {
+                rb_ary_push(arguments, translate_argument(name, val));
+            }
+            let kwargs = build_hash(&[
+                *symbols::ARGUMENTS, arguments
+            ]);
+            build_instance(*classes::INPUT_OBJECT, kwargs)
         }
     };
 }
@@ -313,6 +320,9 @@ mod classes {
     });
     pub static INLINE_FRAGMENT: Lazy<VALUE> = Lazy::new(|| unsafe {
         resolve(static_cstring!("InlineFragment"))
+    });
+    pub static INPUT_OBJECT: Lazy<VALUE> = Lazy::new(|| unsafe {
+        resolve(static_cstring!("InputObject"))
     });
 
     unsafe fn resolve(class_name: *const std::os::raw::c_char) -> VALUE {
