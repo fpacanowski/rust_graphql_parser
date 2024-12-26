@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
-require_relative "rust_graphql_parser/translate"
 require_relative "rust_graphql_parser/version"
 require_relative "rust_graphql_parser/rust_graphql_parser"
-require_relative "another_parser/another_parser"
 
 module RustGraphqlParser
-  class Error < StandardError; end
-  # Your code goes here...
+end
+
+class RustGraphqlParserWrapper
+  def self.parse(query_string, filename: nil, trace: GraphQL::Tracing::NullTrace, max_tokens: nil)
+    trace.parse(query_string: query_string) do
+      RustGraphqlParser.parse(query_string)
+    end
+  end
 end

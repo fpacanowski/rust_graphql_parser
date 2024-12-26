@@ -1,31 +1,49 @@
-extern crate graphql_parser;
-
+use graphql_parser::query::parse_query;
 mod translation;
 
-use std::hint::black_box;
+use rb_sys::{
+    rb_define_module, rb_define_singleton_method, rb_str_buf_append,
+    rb_utf8_str_new_cstr, VALUE, rb_str_new, rb_string_value_ptr, rb_string_value_cstr
+};
+use std::{intrinsics::transmute, os::raw::c_char};
 
-use graphql_parser::query::parse_query;
+use std::ffi::CStr;
+use std::str;
 
-use magnus::{define_module, exception, function, prelude::*, Error, RHash};
-
-fn parse(query: String) -> Result<RHash, Error> {
-    match parse_query::<String>(&query) {
-        Ok(r) => return Ok(translation::translate_document(&r)),
-        Err(e) => return Err(Error::new(exception::runtime_error(), e.to_string())),
-    }
+// Converts a static &str to a C string usable in foreign functions.
+macro_rules! static_cstring {
+    ($string:expr) => {{
+        concat!($string, "\0").as_ptr() as *const c_char
+    }};
 }
 
-fn parse_raw(query: String) -> String {
-    let ast = parse_query::<&str>(&query);
-    black_box(ast);
-    return "".to_owned();
-    // return format!("{:?}",ast);
+unsafe fn parse(query: VALUE) -> VALUE {
+    let ptr = rb_sys::RSTRING_PTR(query) as *const u8;
+    let len = rb_sys::RSTRING_LEN(query) as usize;
+    // let query_str = std::ffi::CStr::from_ptr(query_ptr).to_str().unwrap();
+    let query_str = std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr, len));
+    let ast = parse_query::<&str>(&query_str).unwrap();
+    // let result: String = format!("{:?}", ast);
+    // // let result: String = "foo".to_string();
+    // return rb_str_new(result.as_ptr() as *const c_char, result.len().try_into().unwrap());
+    return translation::translate_document(&ast);
 }
 
-#[magnus::init]
-fn init() -> Result<(), Error> {
-    let module = define_module("RustGraphqlParser")?;
-    module.define_singleton_method("parse", function!(parse, 1))?;
-    module.define_singleton_method("parse_raw", function!(parse_raw, 1))?;
-    Ok(())
+unsafe extern "C" fn wrapped_parse(_: VALUE, query: VALUE) -> VALUE {
+    let result = parse(query);
+    return result;
+}
+
+#[no_mangle]
+unsafe extern "C" fn Init_rust_graphql_parser() {
+    let module = rb_define_module(static_cstring!("RustGraphqlParser"));
+
+    rb_define_singleton_method(
+        module,
+        static_cstring!("parse"),
+        Some(transmute::<unsafe extern "C" fn(VALUE, VALUE) -> VALUE, _>(
+            wrapped_parse,
+        )),
+        1,
+    );
 }
